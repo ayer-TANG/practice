@@ -1,11 +1,11 @@
 # Test Metrics
 
-**当前测试基线：`130 passed / 0 failed`（`node --test`）**
+**当前测试基线：`315 passed / 0 failed`（`node --test`）**
 
-领域层 `timeParser` 的单元测试已于 Phase 4 建立并全部通过。
-UI 层、交付层、真实数据度量仍未建立——见下方「未建立项」。
+领域层三个子模块（`timeParser` / `taskExtractor` / `sorter`）与组装函数 `parse`
+的单元测试已全部建立并通过。UI 层、交付层、真实数据度量仍未建立——见下方「未建立项」。
 
-最后更新：2026-10-09（Phase 4）
+最后更新：2026-10-09（Phase 5）
 
 ---
 
@@ -14,9 +14,9 @@ UI 层、交付层、真实数据度量仍未建立——见下方「未建立�
 | 项 | 状态 |
 |---|---|
 | 测试框架 | `node --test`（Node 内置，零依赖） |
-| 测试文件 | `tests/time-parser.test.mjs`、`tests/load-domain.mjs` |
+| 测试文件 | `tests/time-parser.test.mjs`、`tests/task-extractor.test.mjs`、`tests/parse.test.mjs`、`tests/load-domain.mjs` |
 | 测试命令 | `node --test` |
-| **通过 / 失败** | **130 / 0** |
+| **通过 / 失败** | **315 / 0** |
 | lint | **Not established** |
 | typecheck | **Not established**（项目不使用 TypeScript） |
 | build | **Not established**（项目无构建步骤——这是刻意设计，不是缺失） |
@@ -32,9 +32,9 @@ UI 层、交付层、真实数据度量仍未建立——见下方「未建立�
 >
 > | 命令 | 结果 |
 > |---|---|
-> | `node --test` | 130 passed —— **本项目采用这个** |
-> | `node --test "tests/**/*.test.mjs"` | 130 passed |
-> | `node --test tests/*.test.mjs` | 130 passed |
+> | `node --test` | 315 passed —— **本项目采用这个** |
+> | `node --test "tests/**/*.test.mjs"` | 315 passed |
+> | `node --test tests/*.test.mjs` | 315 passed |
 >
 > 采用零参数的 `node --test`：它按 `**/*.test.mjs` 等模式从仓库根搜索，
 > 不依赖 shell 的 glob 展开，在 cmd / PowerShell / bash 下行为一致。
@@ -46,16 +46,18 @@ UI 层、交付层、真实数据度量仍未建立——见下方「未建立�
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 | `node --test` | Phase 4 | `timeParser` —— §1 全部 69 条 + §2 全部 28 条 + 边界 |
-| 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间 |
+| 领域层单元测试 · 时间解析 | `tests/time-parser.test.mjs` | Phase 4 | `timeParser` —— §1 全部 69 条 + §2 全部 28 条 + 边界 |
+| 领域层单元测试 · 任务识别 | `tests/task-extractor.test.mjs` | Phase 5 | `isTaskLine` / `taskExtractor` —— §4 正向 56 词、反向 21 词、整行匹配边界、已知误检与漏检 |
+| 领域层单元测试 · 组装与排序 | `tests/parse.test.mjs` | Phase 5 | `makeTask` / `sorter` / `parse` 端到端 |
+| 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间。**扫的是 `index.html` 的领域层全文**，因此 Phase 5 新增代码自动被覆盖 |
+| 导出契约守门 | `tests/load-domain.mjs` | Phase 5 | 7 个必需导出缺一即抛错，不让测试报出难懂的错 |
 | 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
 
 ## 计划建立的检查
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 | 同上 | Phase 5 | `taskExtractor` 正/反用例；`sorter` 排序与分组 |
-| 交付层单元测试 | 同上 | Phase 7 | `renderMarkdown` 纯函数输出 |
+| 交付层单元测试 | `node --test` | Phase 7 | `renderMarkdown` 纯函数输出 |
 | UI 主路径 | **人工验证** | Phase 6 | 本版不做自动化，如实记录 |
 | 复制/下载 | **人工验证** | Phase 7 | Chrome / Edge 各一次 |
 
@@ -86,6 +88,10 @@ UI 层、交付层、真实数据度量仍未建立——见下方「未建立�
 **这条断言是有意加的**：成功标准 2 的分母就是这 69 条，
 分母数字漂移会让度量失去意义。同理，§2 的 28 条也有对应断言。
 
+Phase 5 沿用同一手法：§4 的动作词表断言 **38**（原表）/ **56**（含 Phase 5 新增）
+/ **21**（反向词表）。这三条断言的作用不只是防漂移——它们让「词表被改了」
+这件事**必然留下痕迹**，从而强制同步 `SUPPORTED_EXPRESSIONS.md` 与假设 A-001。
+
 ## 测试用例设计原则
 
 1. **反向用例优先**。识别类功能最容易出的问题是误检（把「收到」当任务），
@@ -95,6 +101,19 @@ UI 层、交付层、真实数据度量仍未建立——见下方「未建立�
 3. **边界必测**：跨月（1月31日 + 1天）、跨年（12月31日 + 1天）、
    今天已过去的时间点（如 20:00 时说「今天中午」）、闰年。
 4. **样例自行编造**。禁止使用真实聊天记录（见 `CODEX_MASTER_REQUIREMENTS.md` 隐私纪律）。
+5. **跨 realm 陷阱**（Phase 4 发现，Phase 5 再次踩到）。领域层跑在 `node:vm` 里，
+   它创建的 `Date` / `Array` / `Object` 属于**另一个 realm**：
+
+   | 写法 | 结果 |
+   |---|---|
+   | `x instanceof Date` | **失效**——用鸭子类型 `typeof x.getTime === 'function'` |
+   | `assert.throws(fn, TypeError)` | **失效**——改成匹配错误信息 `/.../` |
+   | `assert.deepEqual(领域层返回的 [], [])` | **失效**——报 `Values have same structure but are not reference-equal` |
+
+   第三条是 Phase 5 新增断言后才暴露的：`deepStrictEqual` 会比较原型，
+   跨 realm 的 `Array.prototype` / `Object.prototype` 互不相等。
+   解法是在 `tests/load-domain.mjs` 里导出 `toLocal()`，断言前把结构搬回测试 realm
+   （`Date` 保留为本地 `Date`，不走 JSON 序列化）。**这不是实现缺陷，是固有现象。**
 
 ### 基准时间选 2026-10-09（周五）的理由
 
@@ -131,7 +150,7 @@ Result:
 - [x] 领域层测试载体（Phase 4）
 - [x] `timeParser` 测试（Phase 4）
 - [x] 领域层纯度静态检查（Phase 4）
-- [ ] `taskExtractor` / `sorter` 测试（Phase 5）
+- [x] `taskExtractor` / `sorter` / `parse` 测试（Phase 5）
 - [ ] `renderMarkdown` 测试（Phase 7）
 - [ ] UI 主路径人工验证（Phase 6）
 - [ ] 真实数据度量记录（Phase 8）

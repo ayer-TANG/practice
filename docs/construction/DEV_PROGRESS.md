@@ -348,3 +348,77 @@ docs/construction/progress/layers/00-foundation.md、01-domain.md、02-ui.md
    测试里有对这两个数字的断言。
 
 **未做（按排除项）：** `taskExtractor`、`sorter`、`parse` 组装、任何界面。
+
+---
+
+## Phase 5 / Start Plan（2026-10-09）
+
+**起点：** `main` @ `45d4d2d`，工作树干净，`node --test` → 130 passed / 0 failed。
+**远端回滚点：** `backup/pre-phase5-extractor-20261009-1900` → `45d4d2d`（已推送）。
+
+### 本轮目标
+
+让领域层具备**端到端**能力：从一段聊天文本得到排好序的 `Task[]`。
+
+### Included
+
+1. `taskExtractor(text) => 候选任务句[]`，动作词表**数据化**
+   （规格来源：`SUPPORTED_EXPRESSIONS.md` §4）
+2. `isTaskLine(line) => boolean` —— 单行判定原语，供 `parse` 保留行号用
+3. `sorter(tasks) => Task[]`：按 deadline 升序，无 deadline 的置于末尾（稳定排序）
+4. `Task` 结构 + `makeTask(input)` 规范化工厂
+5. `parse(text, now) => Task[]` 组装：拆分 → 判定 → 解析时间 → 构造 → 排序
+6. 测试：**先写反向用例，再写正向**（误检是识别类功能最常见的失败）
+
+### Explicit Exclusions
+
+- 任何界面、交互、渲染（Phase 6）
+- 复制 / 下载 / `renderMarkdown`（Phase 7）
+- 任何持久化（产品 non-goal，永不实现）
+- LLM 解析器（`parse` 契约不变即可替换，但不是本轮）
+- 真实聊天记录（测试样例必须自行编造）
+
+### 计划中的设计取舍（写代码前先定，避免边写边改）
+
+| 取舍 | 决定 | 理由 |
+|---|---|---|
+| 行拆分口径 | 按 `/r?\n/` 拆行，一行 = 一条消息 | 粘贴的纯文本以换行分隔；无换行则无法可靠切分 |
+| 反向词匹配范围 | **整行**匹配，不是子串 | 「收到，明天发你」含「收到」但是任务。子串匹配会把它误杀 |
+| `text` 与 `raw` 的区别 | `text` = 去首尾空白的行；`raw` = 原始行。rule 任务二者仅差空白 | 二者为 UI 的两个用途（任务描述 / 核对原文）；本阶段不剥离发言人前缀 |
+| 发言人前缀剥离 | **本轮不做** | 粘贴格式随客户端而异，无真实数据（A-001）时凭空猜格式属于「凭感觉写规则」。记入 Phase 8 校准项 |
+| `id` 生成 | 确定性：`'r' + 行号` | 领域层须纯净可测，不能用 `Math.random()` |
+| 领域层新增导出 | `isTaskLine`、`taskExtractor`、`sorter`、`makeTask`、`parse` | `makeTask` 让 UI 不必手搓 `Task` 形状（Phase 6 手动补漏要用） |
+
+### 完成判据
+
+- `node --test` 全绿，且新用例覆盖 §4 正向全部类别 + 反向全部 21 词
+- 领域层纯度静态检查仍通过（新代码不得引入 DOM / `new Date()` / `Date.now()`）
+- A-001 具备开始验证的条件（`parse` 可对真实文本跑出结果）
+
+### Phase 5 / Completion（2026-10-09）
+
+**状态：Complete。`node --test` → 315 passed / 0 failed（Phase 4 为 130）。**
+
+| 交付物 | 结果 |
+|---|---|
+| 动作词表 | 数据化：`ACTION_WORDS` 56 词 + `FILLER_WORDS` 21 词，数量有断言 |
+| `isTaskLine` / `taskExtractor` | 已实现。反向词按**整行**匹配，不是子串 |
+| `makeTask` / `sorter` | 已实现。`sorter` 不改入参，稳定排序，无截止垫底 |
+| `parse(text, now) => Task[]` | 已实现——**领域层唯一的对外契约，至此完成** |
+| 端到端实测 | 用 10 条编造语料验证过，不是纸上谈兵（输出见 `LOG.md`） |
+
+**偏离计划之处（均已记录，详见 `LOG.md`）：**
+
+1. **动作词表比 §4 初稿多 18 词**：紧迫 6（取自 §1.E 已冻结清单）+ 判断性 12（待 Phase 8 校准）。
+   起因是端到端实测发现「尽快把测试环境搭好」被整句漏掉。
+2. **多导出两个函数**：`isTaskLine`、`makeTask`。
+3. **`SUPPORTED_EXPRESSIONS.md` 新增 §4「已知漏检」**——原本只记误检。
+4. **`load-domain.mjs` 新增 `toLocal()`**：跨 realm 的 `deepEqual` 陷阱（与 Phase 4 的
+   `instanceof` 陷阱同源）。
+
+**两次失败记录（如实保留在 `LOG.md`）：** 跨 realm 的 `deepEqual` 报错 11 处、
+我自己写错的两个测试（断言方向写反、词表总数笔误）。**均非实现缺陷。**
+
+**未做（按排除项）：** 任何界面、LLM 解析器、持久化。
+
+**下一阶段：Phase 6（UI 层）。**

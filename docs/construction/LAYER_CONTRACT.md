@@ -22,7 +22,7 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 | 项 | 内容 |
 |---|---|
 | 职责 | 渲染粘贴区、抽取按钮、结果列表、补漏输入框、删除操作、复制/下载按钮；采集原始文本；读取并传递 `now` |
-| 允许依赖 | 领域层（`parse`、`sortTasks`）、交付层（`renderMarkdown`、`copyToClipboard`、`downloadMarkdown`） |
+| 允许依赖 | 领域层（`parse`、`sorter`、`makeTask`）、交付层（`renderMarkdown`、`copyToClipboard`、`downloadMarkdown`） |
 | 禁止依赖 | **不得内嵌解析规则**——正则表达式与词表只允许存在于领域层 |
 | 现状 | 不存在 |
 | 扩展点 | 迁移到 React 时只重写本层；领域层与交付层原样保留 |
@@ -36,18 +36,22 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 | 职责 | 定义 `Task`；`taskExtractor` 识别候选任务句；`timeParser` 解析时间表达；`sorter` 排序与分组；对外只暴露 `parse(text, now) => Task[]` |
 | 允许依赖 | 仅 JavaScript 内置能力 |
 | 禁止依赖 | **`document`、`window`、`fetch`、`localStorage`、任何 DOM API、任何 UI 概念、任何网络调用** |
-| 现状 | **部分完成**：`timeParser` + `timeParserDetail` 已实现并有测试覆盖；`Task`、`taskExtractor`、`sorter`、`parse` 待 Phase 5 |
+| 现状 | **已完成**（Phase 5）。导出 `timeParser` / `timeParserDetail` / `isTaskLine` / `taskExtractor` / `makeTask` / `sorter` / `parse`，7 项均有测试覆盖 |
 | 扩展点 | `parse` 契约不变的前提下，内部实现可整体替换为 LLM 解析器 |
 
 **判定标准**：本层必须能在 Node 中直接运行并通过全部测试。做不到即违规。
 
 **子模块边界**：
 
-- `taskExtractor`：只负责"这行是不是任务"，不负责解析时间
+- `taskExtractor`：只负责"这一段里哪些行是任务"，不负责解析时间。
+  其原语是 `isTaskLine(line) => boolean`。`parse` 用原语而不用 `taskExtractor`，
+  是为了保住**行号**——`Task.id` 是 `'r' + 行号`，UI 删除时要靠它跟原文对上
 - `timeParser`：只负责"这个时间表达对应哪个绝对时间"，不判断是否任务
 - `sorter`：只负责排序与分组，不改写 `Task` 内容
+- `makeTask`：只负责把入参规范成 `Task` 形状，不做任何判断。
+  导出它是为了让 UI 层做手动补漏时不必手搓对象（少字段会静默出错）
 
-三者互不调用，由 `parse` 组合。这样每一项都能独立测试。
+四者互不调用，由 `parse` 组合。这样每一项都能独立测试。
 
 ## 交付层
 
@@ -81,7 +85,7 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 | 职责 | 覆盖领域层三个子模块的纯函数行为，含正向与反向用例 |
 | 允许依赖 | 领域层（按 D-009：`node:vm` 从 `index.html` 提取代码块求值） |
 | 禁止依赖 | DOM；不得测试 UI 渲染（本版人工验证） |
-| 现状 | **已建立 —— 130 passed / 0 failed**，但只覆盖 `timeParser` |
+| 现状 | **已建立 —— 315 passed / 0 failed**，覆盖领域层全部 7 个导出 |
 | 扩展点 | 若 UI 层复杂度上升，再考虑引入浏览器端 E2E |
 
 **测试载体**：Node 内置 `node:test` + `node:assert`，命令行 **`node --test`**。
@@ -97,8 +101,8 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 
 | 层 | 状态 | 计划在哪个阶段实现 |
 |---|---|---|
-| 领域层 | **部分完成**（`timeParser` 已实现） | 剩余部分在 Phase 5（`Task` + `taskExtractor` + `sorter` + `parse`） |
+| 领域层 | **已完成**（Phase 5） | — |
 | UI 层 | 不存在（`index.html` 有骨架，无界面代码） | Phase 6 |
 | 交付层 | 不存在 | Phase 7 |
-| 测试边界 | **已建立**（130 passed，仅覆盖 `timeParser`） | 每阶段同步扩充，不等实现完再补 |
+| 测试边界 | **已建立**（315 passed，覆盖领域层全部） | 每阶段同步扩充，不等实现完再补 |
 | 其余四层 | N/A | 不会实现 |

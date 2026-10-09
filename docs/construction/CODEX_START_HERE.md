@@ -17,9 +17,9 @@
 
 ## 当前状态（一句话）
 
-**Phase 4 完成。** 领域层 `timeParser` 已实现，`node --test` → 130 passed。
-`index.html` 已存在，但**只是骨架**——界面代码一行都没有，产品现在还不能用。
-`taskExtractor` / `sorter` / `parse` 待 Phase 5。
+**Phase 5 完成 —— 领域层已全部实现**，`node --test` → 315 passed。
+`parse(text, now) => Task[]` 能跑出排好序的任务列表。
+但 `index.html` **仍只是骨架**——界面代码一行都没有，**产品现在还不能用**。
 
 ## 必读顺序
 

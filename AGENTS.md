@@ -38,14 +38,20 @@
 - 如实报告状态（Complete / Partially complete / Blocked）
 
 ## Current Phase
-Phase 4 完成：领域层 `timeParser` 已实现并有测试覆盖（`node --test` → **130 passed**）。
-交付物 `index.html` 与测试载体 `tests/` 均已建立。**UI 层仍为空壳。**
+Phase 5 完成：**领域层已完成**（`node --test` → **315 passed**）。
+`parse(text, now) => Task[]` 已可用，端到端能跑出排好序的任务列表。
+**但产品仍不可用**——`index.html` 里没有一行界面代码，只有领域层和一行占位文字。
 
 Phase 2 仍有一项挂起：仓库改名 `practice` → `zhaiwu`（本机无 `gh` CLI，需用户在网页端执行，
 见 `GITHUB_ROLLBACK.md` 的 Rename Queue）。**它不阻塞后续阶段。**
 
-下一步：Phase 5 —— `taskExtractor` + `sorter` + `parse` 组装。
-写代码前先读 `SUPPORTED_EXPRESSIONS.md`（§4 动作词表）——它是实现的规格来源，不得凭感觉写规则。
+下一步：Phase 6（UI 层）——粘贴区、抽取按钮、结果列表、手动补漏、误检删除。
+动手前先读 `LAYER_CONTRACT.md` 的 UI 层一节：**UI 层不得内嵌任何正则或词表**，
+识别规则只允许存在于领域层。
+
+改动作词表（`SUPPORTED_EXPRESSIONS.md` §4）时必须三处同步：代码、该文档、测试里的数量断言。
+本轮确立的纪律是：**已知误检与已知漏检都写成断言，不写成注释**——
+否则词表变化导致行为反转时，没有任何东西会提醒你。
 
 **测试命令是 `node --test`，不是 `node --test tests/`。**
 后者在 Node 24 下报 `MODULE_NOT_FOUND`（位置参数被当作模块入口）。详见 `TEST_METRICS.md`。

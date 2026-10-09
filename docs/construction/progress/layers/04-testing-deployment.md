@@ -2,16 +2,16 @@
 
 ## 状态
 
-测试：**已建立，130 passed / 0 failed**（Phase 4）
+测试：**已建立，315 passed / 0 failed**（Phase 5）
 部署：**未开始**
 
 ## 测试
 
 ### 当前基线
 
-`node --test` → **130 passed / 0 failed**。
+`node --test` → **315 passed / 0 failed**。
 
-已建立的部分只覆盖领域层 `timeParser`。UI 层、交付层、真实数据度量仍未建立。
+已建立的部分覆盖**整个领域层**（7 个导出）。UI 层、交付层、真实数据度量仍未建立。
 详见 `TEST_METRICS.md`。
 
 > **命令写法**：`node --test tests/` **不成立**（Node 24 下位置参数被当作模块入口）。
@@ -23,7 +23,7 @@
 |---|---|
 | `node --test` | Node 内置测试运行器，零依赖。见上方关于命令写法的说明 |
 | `node:assert` | Node 内置断言库 |
-| `tests/load-domain.mjs` | 测试引导：从 `index.html` 提取领域层（D-009） |
+| `tests/load-domain.mjs` | 测试引导：从 `index.html` 提取领域层（D-009）；导出 `toLocal()` 处理跨 realm 断言 |
 | `git diff --check` | 每轮必跑，检查空白字符错误 |
 
 不引入 Jest / Vitest / Mocha / Playwright——违反零依赖原则。
@@ -39,7 +39,7 @@
 
 | 层 | 测试方式 | 现状 |
 |---|---|---|
-| 领域层 | 自动化单元测试（纯函数，Node 直接跑） | `timeParser` 已覆盖；`taskExtractor`/`sorter` 待 Phase 5 |
+| 领域层 | 自动化单元测试（纯函数，Node 直接跑） | **已全部覆盖**（Phase 5） |
 | 交付层 `renderMarkdown` | 自动化单元测试（纯函数） | 待 Phase 7 |
 | UI 层 | **人工验证**，如实记录为"人工验证"而非"通过" | 待 Phase 6 |
 | 复制 / 下载 | 人工验证 | 待 Phase 7 |
@@ -48,6 +48,10 @@
 
 - 时间解析测试必须显式注入 `now`，不得依赖真实当前时间
 - 必须包含反向用例（「收到」不得被判为任务）
+- **已知误检与已知漏检都写成断言，不写成注释**（Phase 5 确立）——
+  注释不会在行为反转时报警，断言会
+- **跨 realm 断言必须过 `toLocal()`**（`tests/load-domain.mjs`）。领域层跑在 `node:vm` 里，
+  `deepStrictEqual` 比较原型的会失败；`instanceof` 同样失效。见 `TEST_METRICS.md`
 - 样例自行编造，**禁止真实聊天记录**
 - **跨 realm 陷阱**：领域层跑在 `node:vm` 里，它抛出的 `TypeError` 与测试文件的
   `TypeError` 不是同一个构造器。因此 `assert.throws(fn, TypeError)` 会失败

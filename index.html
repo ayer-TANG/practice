@@ -412,9 +412,7 @@
    * @returns {{ date: Date|null, fuzzy: boolean }}
    */
   function timeParserDetail(text, now) {
-    if (!now || typeof now.getTime !== 'function' || isNaN(now.getTime())) {
-      throw new TypeError('timeParser 需要注入有效的 now（Date）');
-    }
+    assertNow(now);
     if (typeof text !== 'string' || text === '') return { date: null, fuzzy: false };
 
     var masked = maskRejects(text);
@@ -450,10 +448,208 @@
     return timeParserDetail(text, now).date;
   }
 
+  // ==========================================================================
+  // 动作词表（SUPPORTED_EXPRESSIONS.md §4，数据化）
+  // ==========================================================================
+
+  /**
+   * 正向词表：命中即认为这一行在说「有件事要做」。
+   * 类别只用于文档与调试，判定时拍平成一个列表。
+   */
+  var ACTION_WORDS = {
+    '请求': ['麻烦', '请你', '帮忙', '帮我', '需要你', '给我', '发我', '找一下', '交给你', '麻烦你'],
+    '提醒': ['记得', '别忘了', '不要忘记', '提醒我', '注意'],
+    '交付推进': ['提交', '上传', '发', '回复', '确认', '处理', '安排', '完成', '跟进', '核对',
+      '整理', '更新', '准备', '修改', '检查', '落实', '对接', '审批', '同步'],
+    '截止': ['截止', 'deadline', '之前给我', '之前发我'],
+    // 紧迫词：直接取自 §1.E 已冻结的清单，不是新判断 —— 含这类词的句子必然在说
+    // 一件要做的事。缺了这一项，「尽快把环境搭好」会整句漏掉，§1.E 的紧迫映射
+    // 也就永远没机会生效。
+    '紧迫': ['尽快', '马上', '抓紧', '赶紧', '第一时间', '立刻'],
+    // Phase 5 补充：§4 已注明该表是初稿、实现时扩充。以下 12 个词是工作/学习聊天里
+    // 近乎无歧义的「有件事要做」标记（「周三下午开会」这种句子原本会被整句漏掉）。
+    // 它们是判断，不是数据 —— 待 Phase 8 用真实语料校准，可能增也可能删。
+    'Phase5补充': ['开会', '会议', '汇报', '参加', '报名', '签到', '出差', '报销',
+      '缴费', '预约', '取件', '反馈']
+  };
+
+  var ACTION_WORD_LIST = (function () {
+    var all = [];
+    for (var cat in ACTION_WORDS) {
+      if (Object.prototype.hasOwnProperty.call(ACTION_WORDS, cat)) {
+        all = all.concat(ACTION_WORDS[cat]);
+      }
+    }
+    return all;
+  })();
+
+  /** 反向词表（§4）：整行都是这类词时，这一行不是任务。 */
+  var FILLER_WORDS = [
+    '收到', '好的', '好', '嗯', '哦', '明白了', '了解', '没问题', '辛苦了', '谢谢', '谢了',
+    '哈哈', '哈哈哈', '在吗', '早', '早安', '晚安', '已阅', 'OK', 'ok', '嗯嗯'
+  ];
+
+  // 长的在前：剥离时先试「好的」再试「好」，否则「好的」会剩一个「的」剥不干净
+  var FILLER_SORTED = FILLER_WORDS.slice()
+    .map(function (w) { return w.toLowerCase(); })
+    .sort(function (a, b) { return b.length - a.length; });
+
+  /**
+   * 这一行是否**整行都是**寒暄/确认语。
+   *
+   * 判定是整行，不是子串 —— 「收到，明天发你」含「收到」但它是个任务。
+   * 剥掉标点与空白后若被反向词完全吃光，才算寒暄。
+   */
+  function isFillerLine(line) {
+    var s = String(line).replace(/[\s\p{P}\p{S}]/gu, '').toLowerCase();
+    if (s === '') return true;
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var i = 0; i < FILLER_SORTED.length; i++) {
+        var w = FILLER_SORTED[i];
+        if (w !== '' && s.slice(0, w.length) === w) {
+          s = s.slice(w.length);
+          changed = true;
+          break;
+        }
+      }
+    }
+    return s === '';
+  }
+
+  /** 命中任一正向词则返回该词，否则 null（返回词本身，便于调试与测试断言） */
+  function actionWordIn(line) {
+    var lower = String(line).toLowerCase();
+    for (var i = 0; i < ACTION_WORD_LIST.length; i++) {
+      var w = ACTION_WORD_LIST[i].toLowerCase();
+      if (lower.indexOf(w) !== -1) return ACTION_WORD_LIST[i];
+    }
+    return null;
+  }
+
+  /**
+   * 单行判定：这一行是不是候选任务句。
+   *
+   * 只回答「是不是」，不解析时间、不构造 Task —— 见 LAYER_CONTRACT.md 的子模块边界。
+   */
+  function isTaskLine(line) {
+    if (typeof line !== 'string') return false;
+    var t = line.trim();
+    if (t === '') return false;
+    if (isFillerLine(t)) return false;
+    return actionWordIn(t) !== null;
+  }
+
+  function splitLines(text) {
+    return text.split(/\r?\n/);
+  }
+
+  /**
+   * 从整段文本里挑出候选任务句。
+   *
+   * @param {string} text
+   * @returns {string[]} 去首尾空白后的候选行，保持原顺序
+   */
+  function taskExtractor(text) {
+    if (typeof text !== 'string') return [];
+    var lines = splitLines(text);
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      if (isTaskLine(lines[i])) out.push(lines[i].trim());
+    }
+    return out;
+  }
+
+  // ==========================================================================
+  // Task 构造与排序
+  // ==========================================================================
+
+  /**
+   * 规范化一个 Task。UI 层手动补漏时也用它，避免手搓对象漏字段。
+   *
+   * Task 的权威定义见 ARCHITECTURE.md「数据模型」。
+   */
+  function makeTask(input) {
+    return {
+      id: input.id,
+      text: input.text,
+      deadline: input.deadline === undefined ? null : input.deadline,
+      fuzzy: input.fuzzy === true,
+      source: input.source,
+      raw: input.raw === undefined ? '' : input.raw
+    };
+  }
+
+  /**
+   * 排序：有截止时间的按升序在前，无截止时间的垫底（各有各的组内原顺序）。
+   *
+   * 「分组」不体现在返回值形状上 —— 分界线就是 `deadline === null`，
+   * UI 一次 filter 即可分两段渲染。
+   *
+   * @param {Array} tasks
+   * @returns {Array} 新数组，不修改入参
+   */
+  function sorter(tasks) {
+    var copy = tasks.slice();
+    copy.sort(function (a, b) {
+      var ad = a.deadline, bd = b.deadline;
+      var an = (ad === null || ad === undefined);
+      var bn = (bd === null || bd === undefined);
+      if (an && bn) return 0;
+      if (an) return 1;
+      if (bn) return -1;
+      return ad.getTime() - bd.getTime();
+    });
+    return copy;
+  }
+
+  function assertNow(now) {
+    if (!now || typeof now.getTime !== 'function' || isNaN(now.getTime())) {
+      throw new TypeError('timeParser 需要注入有效的 now（Date）');
+    }
+  }
+
+  /**
+   * 对外契约：文本 → Task[]，已按紧急度排好。
+   *
+   * 组合三个互不调用的子模块：taskExtractor 判定 → timeParser 解析时间 → sorter 排序。
+   *
+   * @param {string} text 粘贴的聊天文本
+   * @param {Date}   now  基准时间，由调用方注入
+   * @returns {Array} Task[]
+   */
+  function parse(text, now) {
+    assertNow(now);
+    if (typeof text !== 'string' || text === '') return [];
+
+    var lines = splitLines(text);
+    var tasks = [];
+    for (var i = 0; i < lines.length; i++) {
+      if (!isTaskLine(lines[i])) continue;
+      var line = lines[i].trim();
+      var parsed = timeParserDetail(line, now);
+      tasks.push(makeTask({
+        id: 'r' + i,          // 确定性 id：行号。领域层须可测，不能用随机数
+        text: line,
+        deadline: parsed.date,
+        fuzzy: parsed.fuzzy,
+        source: 'rule',
+        raw: lines[i]         // 原文，用于 UI 核对
+      }));
+    }
+    return sorter(tasks);
+  }
+
   globalThis.__zhaiwuDomain = {
-    version: 'Phase 4',
+    version: 'Phase 5',
     timeParser: timeParser,
-    timeParserDetail: timeParserDetail
+    timeParserDetail: timeParserDetail,
+    taskExtractor: taskExtractor,
+    isTaskLine: isTaskLine,
+    sorter: sorter,
+    makeTask: makeTask,
+    parse: parse
   };
 })();
 </script>

@@ -32,11 +32,38 @@ const domain = context.__zhaiwuDomain;
 if (!domain) {
   throw new Error('领域层没有挂载 globalThis.__zhaiwuDomain');
 }
-if (typeof domain.timeParser !== 'function') {
-  throw new Error('领域层缺少 timeParser');
+
+// 对外契约的守门人：缺了谁就在这里炸，而不是等某个测试报出难懂的错
+const REQUIRED_EXPORTS = [
+  'timeParser', 'timeParserDetail',
+  'isTaskLine', 'taskExtractor', 'makeTask', 'sorter', 'parse'
+];
+for (const name of REQUIRED_EXPORTS) {
+  if (typeof domain[name] !== 'function') {
+    throw new Error(`领域层缺少导出：${name}`);
+  }
 }
-if (typeof domain.timeParserDetail !== 'function') {
-  throw new Error('领域层缺少 timeParserDetail');
+
+/**
+ * 把领域层返回的结构搬回测试所在的 realm。
+ *
+ * 领域层跑在 node:vm 里，它创建的 Array / Object 拥有**另一个 realm 的原型**。
+ * `assert.deepEqual`（strict 模式下即 deepStrictEqual）会比较原型，
+ * 于是 `deepEqual(领域层返回的 [], [])` 会以
+ * 「Values have same structure but are not reference-equal」失败。
+ *
+ * 这不是实现缺陷，是跨 realm 的固有现象 —— 与 `x instanceof Date` 失效同源。
+ * 断言前用本函数把结构搬回来；Date 保留为本地 Date，不走 JSON 序列化。
+ */
+export function toLocal(v) {
+  if (Array.isArray(v)) return Array.from(v, toLocal);
+  if (v !== null && typeof v === 'object') {
+    if (typeof v.getTime === 'function') return new Date(v.getTime());
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = toLocal(v[k]);
+    return out;
+  }
+  return v;
 }
 
 export { domain };

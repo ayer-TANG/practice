@@ -701,3 +701,163 @@ Result: **130 passed / 0 failed**
 Phase 5 —— `taskExtractor` + `sorter` + `parse` 组装，规格来源是
 `SUPPORTED_EXPRESSIONS.md` §4 的动作词表（初稿，Phase 5 实现时扩充）。
 反向用例的重要性不亚于正向：识别类功能最常见的失败是**误检**。
+
+---
+
+## 2026-10-09 19:00 / Phase 5 / Work Log
+
+### Plan Replay
+
+按 `DEV_PROGRESS.md` 的 start plan 执行：实现动作词表、`isTaskLine`、`taskExtractor`、
+`makeTask`、`sorter`、`parse`，并扩充测试。
+
+**先建回滚点再动手**：`backup/pre-phase5-extractor-20261009-1900` → `45d4d2d`（已推送）。
+
+计划外的三处，都在下面「Actual Changes」里如实记录。
+
+### Actual Changes
+
+**`index.html`（领域层）新增：**
+
+| 项 | 说明 |
+|---|---|
+| `ACTION_WORDS` | 56 词，5 类：请求 / 提醒 / 交付推进 / 截止 / **紧迫** / **Phase5补充** |
+| `FILLER_WORDS` | 21 词，反向词表 |
+| `isFillerLine` | 剥掉 `\p{P}\p{S}` 与空白后，判断整行是否被反向词吃光 |
+| `actionWordIn` | 命中则返回该词本身（便于调试），否则 `null` |
+| `isTaskLine` | 单行判定原语 |
+| `splitLines` / `taskExtractor` | 按 `/r?\n/` 切分并筛 |
+| `makeTask` | 规范化 `Task`（6 字段） |
+| `sorter` | 升序 + 无截止垫底；`slice()` 后排序，不改入参 |
+| `assertNow` | 抽出来给 `timeParserDetail` 与 `parse` 共用（纯重构，错误信息未变） |
+| `parse(text, now)` | 组装，输出 `Task[]` |
+
+**测试新增：**
+
+| 文件 | 内容 |
+|---|---|
+| `tests/task-extractor.test.mjs` | §4 反向 21 词 → 边界 → §4 正向 56 词 → 切分 → 已知误检 → 已知漏检 |
+| `tests/parse.test.mjs` | `makeTask` / `sorter` / `parse` 端到端 / 输出不变式 |
+| `tests/load-domain.mjs` | 加 7 项导出契约守门；加 `toLocal()`（见下） |
+
+**三处偏离 plan，均已记录：**
+
+1. **动作词表比 §4 初稿多 18 个词。**
+   - **紧迫 6 个**（尽快/马上/抓紧/赶紧/第一时间/立刻）：**依据是 §1.E 已冻结的紧迫词清单**，
+     不是新判断。写完之后跑端到端演示时发现「尽快把测试环境搭好」**整句漏掉**——
+     因为「搭好」不是动作词。缺这一项，§1.E 那条「尽快 → 今天 23:59，fuzzy」的映射
+     永远没有机会生效。
+   - **Phase5补充 12 个**（开会/会议/汇报/参加/报名/签到/出差/报销/缴费/预约/取件/反馈）：
+     **这是判断，不是数据**，已在文档里如此标注，并写明待 Phase 8 校准、「可能增也可能删」。
+2. **多导出两个函数**：`isTaskLine`（`parse` 靠它保行号）与 `makeTask`
+   （Phase 6 的手动补漏要用，否则 UI 得手搓 `Task` 对象，少字段会静默出错）。
+3. **`SUPPORTED_EXPRESSIONS.md` 新增 §4「已知漏检」小节。** §5 原本只记误检。
+   漏检同样是固有边界，不记下来 Phase 8 的 A-001 校准就没有基线。
+
+**纪律的确立**：**已知误检与已知漏检都写成断言，不写成注释。**
+注释不会在行为反转时报警；断言会。将来若词表变化让这些用例反转，测试变红，
+强制同步文档与 A-001。
+
+### Test Attempts
+
+#### Test Attempt 1
+
+```
+Command: node --test
+Result:  Failed
+Summary: 2 failures（另有若干因跨 realm 报错）
+```
+
+失败分两类，**都不是实现缺陷**：
+
+**(a) 跨 realm 的 `deepEqual` —— 11 处。**
+报错信息是 `Values have same structure but are not reference-equal`，
+即使打印出来的 `actual` 与 `expected` 看着一模一样。
+
+原因：领域层跑在 `node:vm` 里，它创建的 `Array` / `Object` 拥有**另一个 realm 的原型**；
+`assert.deepEqual`（strict 模式下即 `deepStrictEqual`）会比较原型，跨 realm 的原型不相等。
+
+这与 Phase 4 那个 `x instanceof Date` 失效的问题**同源**，只是换了个面。
+
+**(b) 我自己写错的两个测试。**
+- `「他昨天出差去了」不是任务` —— 我在「无动作词」组里放了它，
+  但它含「出差」，而「出差」是我本轮加进正向表的。**断言写反了。**
+- `词表共 58 个词` —— `10+5+19+4+12 = 50`，58 是笔误。
+
+#### Fix
+
+| 文件 | 改动 |
+|---|---|
+| `tests/load-domain.mjs` | 新增导出 `toLocal()`：把领域层返回的结构搬回测试 realm，`Date` 保留为本地 `Date`（不走 JSON 序列化，否则会丢类型） |
+| `tests/task-extractor.test.mjs` | `taskExtractor` 包一层 `toLocal` |
+| `tests/parse.test.mjs` | `parse` / `sorter` / `makeTask` 各包一层 `toLocal`；断言正文因此保持原样可读 |
+| `tests/task-extractor.test.mjs` | 「他昨天出差去了」移入**已知误检**组（它属于 §5 的「已完成的任务」类） |
+| `tests/task-extractor.test.mjs` | 58 → 50（后又因加入「紧迫」6 词变为 56） |
+
+#### Retest
+
+```
+Command: node --test
+Result:  315 passed / 0 failed
+```
+
+#### 端到端实测（写完测试之后，不是之前）
+
+用一段 10 条消息的编造语料跑 `parse`，验证不是纸上谈兵。**这一步暴露了「尽快」的漏检**
+（见上「偏离 plan」第 1 条）——测试全绿不代表产品能用。
+
+语料与脚本**只在内存与 `/tmp` 中**，未进入仓库。
+
+修复后的实际输出（`now` = 2026-10-09 10:00，周五）：
+
+```
+2026-10-09 20:00             晚上八点前回复我邮件
+2026-10-09 23:59             另外记得提醒我周五之前跟客户确认一下交付时间
+2026-10-09 23:59  [fuzzy]    尽快把测试环境搭好
+2026-10-10 15:00             小王，明天下午三点前把上周的报表发我一下
+```
+
+「收到」「哈哈哈」「辛苦了」「好的」「这个我看看」均未被判为任务。
+「下周三上午十点开个复盘会」**漏检**——已记入 §4 已知漏检，未凭感觉补词。
+
+### Verification
+
+- 全部样例自行编造 —— **无真实聊天记录进入仓库**
+- 未实现任何未来阶段的功能（UI 一律未写，`renderMarkdown` 未写）
+- 领域层纯度静态检查通过（扫的是领域层全文，Phase 5 新代码**自动被覆盖**）
+- 无密钥
+
+### Git Status
+
+- 分支 `main`，baseline `45d4d2d`
+- backup 分支 `backup/pre-phase5-extractor-20261009-1900` → `45d4d2d`（已推送）
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+
+### Rollback Judgment
+
+本阶段改动集中在两处：`index.html` 的领域层追加（不动 Phase 4 的四张模式表）、
+新增两个测试文件。若要回滚：`git revert <Phase 5 提交>`，或回到 backup 分支
+`backup/pre-phase5-extractor-20261009-1900`。
+
+**注意**：回滚本阶段会让 `parse` 消失，但**不会**影响 `timeParser`——
+Phase 4 的四张模式表本轮一行未改，130 个旧用例全程保持通过。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| **单字动作词的误检** | 「发」「注意」会命中「沙发」「头发」「注意身体」。§5 已记录，测试里有断言锁定。**这是产品定位（一键删除）存在的原因，不要试图用更复杂的规则消灭它** |
+| **已知漏检无法穷举** | 「开个复盘会」「给你答复」「弄一下」都漏。Phase 8 要统计频率，频率决定要不要补词 |
+| **词表是判断不是数据** | 56 个词里 12 个（Phase5补充）没有真实语料支撑。Phase 8 可能删掉其中一部分 |
+| **`Task.id` 依赖行号** | 若 Phase 6 的 UI 在抽取后重新拼接文本再解析，行号会变。UI 必须在**同一次** `parse` 调用里拿 id |
+| **`Task.raw` 与 `Task.text` 目前几乎相同** | 差别只有首尾空白。若不剥离发言人前缀，`raw` 的价值有限。剥离推迟到 Phase 8（拿到真实粘贴格式之后） |
+| A-001 仍未验证 | 本阶段只让"验证变得可能"。真实召回率依然是未知数 |
+
+### Next Step
+
+Phase 6 —— UI 层。**UI 层不得内嵌任何正则或词表**（`LAYER_CONTRACT.md` 的判定标准：
+看到 `/\d+月\d+日/` 即为违规）。UI 只需调用 `parse` / `makeTask` / `sorter`。
+
+界面上必须体现的两件事：
+1. `fuzzy` 标注 —— 不能让用户以为「尽快」是对方说的明确时间（诚实性要求，非装饰）
+2. 「未识别到时间」独立分组 —— 分界线就是 `deadline === null`

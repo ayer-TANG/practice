@@ -41,13 +41,13 @@
 | 层 | 职责 | 允许依赖 | 禁止依赖 | 现状 |
 |---|---|---|---|---|
 | UI 层 | 粘贴区、抽取按钮、结果列表、补漏输入框、删除、复制/下载按钮的渲染与事件 | 领域层、交付层 | 解析规则（正则不得写在 UI 层） | 不存在 |
-| 领域层（核心） | `Task` 类型；`taskExtractor` 任务句识别；`timeParser` 时间解析；`sorter` 排序与分组 | 仅 JS 内置能力 | **DOM、网络、localStorage** | **部分完成**——`timeParser` 已实现；其余待 Phase 5 |
+| 领域层（核心） | `Task` 类型；`taskExtractor` 任务句识别；`timeParser` 时间解析；`sorter` 排序与分组 | 仅 JS 内置能力 | **DOM、网络、localStorage** | **已完成**（Phase 5） |
 | 交付层 | 把 `Task[]` 渲染成 Markdown；复制到剪贴板；下载 `.md` | 领域层的 `Task` 类型 | 被领域层反向依赖 | 不存在 |
 | 数据层 | —— | —— | —— | **N/A**（本版无持久化） |
 | 认证层 | —— | —— | —— | **N/A**（单用户无账号） |
 | 存储层 | —— | —— | —— | **N/A**（无文件/对象存储需求） |
 | 集成层 | —— | —— | —— | **N/A**（无网络请求、不接第三方） |
-| 测试边界 | 领域层纯函数测试 | 领域层 | DOM | `node --test` → 130 passed（仅覆盖 `timeParser`） |
+| 测试边界 | 领域层纯函数测试 | 领域层 | DOM | `node --test` → 315 passed（覆盖领域层全部） |
 
 四个 N/A 层不是遗漏。按施工纪律，在需要之前不引入数据库、队列、搜索、对象存储或认证服务。
 
@@ -134,8 +134,9 @@ Task {
 - 领域层代码内联在 `index.html` 中，测试用 `node:vm` 提取该块求值（D-009）。
 - 必须覆盖：
   - `timeParser`：全部支持的时间表达（清单由 Phase 3 产出）—— **Phase 4 已完成**
-  - `taskExtractor`：命中用例 + **不命中用例**（「收到」「哈哈哈」不得被判为任务）
-  - `sorter`：排序正确性 + 无截止时间的分组与位置
+  - `taskExtractor`：命中用例 + **不命中用例**（「收到」「哈哈哈」不得被判为任务）—— **Phase 5 已完成**
+  - `sorter`：排序正确性 + 无截止时间的分组与位置 —— **Phase 5 已完成**
+  - `parse`：端到端组装与输出不变式 —— **Phase 5 已完成**
 - UI 层与交付层：本版不做自动化测试，人工验证。这一点必须诚实记录在 `TEST_METRICS.md`。
 
 ### Decision D-009：OD-001 —— 单文件与可测试性的冲突（**已关闭**）
@@ -171,8 +172,8 @@ classic script（`<script src="app.js">`）在 `file://` 下可以加载。
 **具体做法：**
 
 - 领域层代码内联在 `index.html` 中一个带稳定标记的 `<script id="zhaiwu-domain">` 块内
-- 该块末尾把命名空间挂到 `globalThis`，使宿主能取到：
-  `globalThis.__zhaiwuDomain = { parse, timeParser, taskExtractor, sorter }`
+- 该块末尾把命名空间挂到 `globalThis`，使宿主能取到（Phase 5 现状）：
+  `globalThis.__zhaiwuDomain = { version, timeParser, timeParserDetail, isTaskLine, taskExtractor, makeTask, sorter, parse }`
   （在浏览器里这只是一个无害的全局变量）
 - 测试引导 `tests/load-domain.mjs`：读 `index.html` → 正则提取
   `<script id="zhaiwu-domain">` 正文 → `vm.runInNewContext` 求值 →

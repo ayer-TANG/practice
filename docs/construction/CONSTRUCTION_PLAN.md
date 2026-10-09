@@ -187,11 +187,17 @@ Phase 3（支持表达清单 + OD-001）
 清单中每一条时间表达都有对应测试且通过；成功标准 2（≥80%）的度量方式已可执行。
 
 ### Rollback Point
-Phase 2 的 backup 分支
+`backup/pre-phase4-timeparser-20261009-1844` → `3d48ebe`（写第一行应用代码之前）
 
 ---
 
-## Phase 5: 领域层 — taskExtractor + sorter ⬜
+## Phase 5: 领域层 — taskExtractor + sorter ✅
+
+> 产出：`index.html` 的领域层新增动作词表、`isTaskLine`、`taskExtractor`、
+> `makeTask`、`sorter`、`parse`；新增 `tests/task-extractor.test.mjs`、
+> `tests/parse.test.mjs`；`tests/load-domain.mjs` 增加导出契约守门与 `toLocal()`。
+> `node --test` → **315 passed / 0 failed**（Phase 4 为 130）。
+> **领域层至此完成**，下一个动代码的阶段是 Phase 6（UI）。
 
 ### Goal
 完成领域层的另一半：识别任务句、排序分组，并接上 `parse` 契约。
@@ -216,8 +222,34 @@ Phase 4
 ### Acceptance Criteria
 领域层全部测试通过；领域层无 DOM 引用（可静态检查）；A-001 可用真实数据开始验证。
 
+### 完成情况（2026-10-09）
+
+**状态：Complete。315 passed / 0 failed。**
+
+| 交付物 | 结果 |
+|---|---|
+| 动作词表 | 数据化，56 词（§4 原表 38 + 紧迫 6 + 补充 12）+ 反向 21 词，数量有断言 |
+| `isTaskLine` / `taskExtractor` | 已实现。反向词按**整行**匹配，不是子串 |
+| `makeTask` | 已实现，规范化 `Task` 形状（`ARCHITECTURE.md` 数据模型） |
+| `sorter` | 已实现。升序 + 无截止垫底，不改入参，稳定排序 |
+| `parse(text, now) => Task[]` | 已实现，领域层唯一的对外契约 |
+
+**偏离计划之处（均已记录）：**
+
+1. **动作词表比 §4 初稿多了 18 个词**：紧迫 6（直接取自 §1.E 已冻结的紧迫词清单）
+   + 判断性 12（标注为「待 Phase 8 校准」）。§4 原文已注明"实现时会扩充"。
+2. **多导出两个函数**：`isTaskLine`（原语，`parse` 保行号用）与 `makeTask`
+   （让 UI 手动补漏时不必手搓 `Task`）。
+3. **`SUPPORTED_EXPRESSIONS.md` 新增 §4「已知漏检」小节**。§5 原本只记误检，
+   漏检同样需要如实记录，否则 Phase 8 的 A-001 校准没有基线。
+4. **`load-domain.mjs` 增加了导出契约守门与 `toLocal()`**——后者是跨 realm
+   断言陷阱的解法，见 `TEST_METRICS.md`。
+
+**未做（按排除项）：** 任何界面、LLM 解析器、持久化。
+
 ### Rollback Point
-Phase 2 的 backup 分支
+`backup/pre-phase5-extractor-20261009-1900` → `45d4d2d`
+（Phase 4 收工、尚未有任何任务识别代码的状态）
 
 ---
 
