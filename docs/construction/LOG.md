@@ -196,3 +196,167 @@ Result: 见下方 Retests。
 1. Phase 2：建 backup 分支并推送；仓库改名 `practice` → `zhaiwu`；处置 skill 目录归属
 2. Phase 3：产出「支持表达清单」；关闭 OD-001
 3. 决定换行符策略（`gitattributes`）
+
+---
+
+## 2026-10-09 17:45 / Phase 2 / Work Log
+
+### Plan Replay
+
+按 `DEV_PROGRESS.md` 的 Phase 2 start plan 执行。四项范围：
+backup 分支、skill 目录处置、换行符策略、仓库改名。
+
+### Actual Changes
+
+**1. 远端回滚点已建立**
+
+```
+backup/pre-phase2-repo-setup-20261009-1745  →  9d693c1
+```
+
+创建流程严格按 `GITHUB_ROLLBACK.md`：`git switch -c` → `git push -u origin` → `git switch main`。
+推送成功后才继续后续步骤。已用 `git ls-remote --heads origin` 复验分支存在于远端。
+
+**2. skill 目录归属：加入 `.gitignore`**
+
+`.gitignore` 追加：
+
+```
+# 第三方工具：skill 包，不是产品代码，不纳入版本控制
+# 保留在本地供开发使用；如需重装，从上游重新获取
+idea-to-production-vibecoding-main/
+```
+
+理由：它是开发工具，不是产品交付物。把第三方代码提交进产品仓库会让
+"仓库内容 = 产品 + 工具"混淆，也会让 `git log` 噪音增加。
+选择忽略而非移出仓库，是因为移出会改变 skill 的可用位置，且本地保留更便于继续使用。
+
+**3. 换行符策略：新增 `.gitattributes`**
+
+```
+* text=auto eol=lf
+```
+
+配合二进制文件声明。背景：开发机 `core.autocrlf=true` 且仓库此前无换行符约定，
+导致每次提交都出现 LF→CRLF 警告（Phase 1 已验证为噪音，非错误）。
+本文件明确仓库内与工作区统一使用 LF，消除该警告。
+
+**4. 仓库改名：受阻，未执行**
+
+本机 `gh: command not found`，无 GitHub CLI，agent 无法代为改名。
+该步骤需用户在 GitHub 网页端操作（Settings → Repository name）。
+已记入 `GITHUB_ROLLBACK.md` 的 Rename Queue 与 `AGENTS.md` 的 Current Phase。
+
+**未执行且未越界**：未修改任何应用代码，未改动 `idea-to-production-vibecoding-main/` 内容，
+未变更 GitHub 上除仓库名以外的任何设置。
+
+### Files Changed
+
+```
+M  .gitignore
+A  .gitattributes
+M  AGENTS.md
+M  docs/construction/DEV_PROGRESS.md
+M  docs/construction/LOG.md
+M  docs/construction/HANDOFF.md
+M  docs/construction/CONSTRUCTION_PLAN.md
+M  docs/construction/GITHUB_ROLLBACK.md
+M  docs/construction/progress/layers/00-foundation.md
+```
+
+### Test Log
+
+无代码，测试基线保持 `Not established`。**不得记为 Passed。**
+
+**Check 1 — 忽略规则生效**
+
+```
+$ git check-ignore -v idea-to-production-vibecoding-main/
+.gitignore:17:idea-to-production-vibecoding-main/	idea-to-production-vibecoding-main/
+```
+
+Result: Passed
+
+**Check 2 — 换行符策略未造成意外改动**
+
+```
+$ git status --short
+ M .gitignore
+?? .gitattributes
+```
+
+Result: Passed。**未发生全量重规范化**——若 `eol=lf` 与已存内容冲突，
+此处会列出全部 20 个文件为已修改。仅出现预期的两个文件。
+
+**Check 3 — CRLF 警告消失**
+
+加入 `.gitattributes` 后 `git add` 未再输出
+`warning: LF will be replaced by CRLF`。
+
+Result: Passed
+
+**Check 4 — 远端 backup 分支存在**
+
+```
+$ git ls-remote --heads origin
+9d693c1...  refs/heads/backup/pre-phase2-repo-setup-20261009-1745
+9d693c1...  refs/heads/main
+```
+
+Result: Passed
+
+### Failures
+
+**无失败。** 本轮四项检查均一次通过。
+
+但有一项**计划内未完成**（非失败）：仓库改名受阻于缺少 `gh` CLI。
+这是环境限制，不是执行错误；已在 start plan 的 Repository State 中预先记录。
+
+### Fixes
+
+不适用。
+
+### Retests
+
+不适用。
+
+### Documentation Drift
+
+**修掉的漂移：**
+
+1. `AGENTS.md` 的 Current Phase 仍写着 Phase 1 —— 已更新为 Phase 2 部分完成
+2. `CONSTRUCTION_PLAN.md` Phase 2 状态仍为 ⬜ —— 已标为 ▶ 部分完成并注明受阻原因
+3. `GITHUB_ROLLBACK.md` 的 Baseline 表有占位条目「（Phase 1 提交后补记）」—— 已填入 `ce56c9b`、`9d693c1`
+4. `GITHUB_ROLLBACK.md` 缺少 backup 分支记录 —— 已新增 Backup Branches 小节
+5. `progress/layers/00-foundation.md` 的未完成项已过时 —— 已更新
+
+**记录但未处理的漂移：**
+
+6. `GITHUB_ROLLBACK.md`、`AGENTS.md`、`PRODUCT_REQUIREMENTS.md` 中的仓库 URL 仍为 `practice`。
+   **这是刻意的**——改名尚未实际发生，此时把文档改成 `zhaiwu` 会让文档比事实更超前。
+   待改名完成后一并通过 R-2/R-3 更新。
+
+### Git Status
+
+- 分支 `main`，baseline `9d693c1`
+- backup 分支：`backup/pre-phase2-repo-setup-20261009-1745`（已推送）
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+- 工作树：本轮结束后除预期改动外干净；`idea-to-production-vibecoding-main/` 已不再出现在 `git status` 中
+
+### Rollback Judgment
+
+无需回滚。`.gitattributes` 与 `.gitignore` 均为低风险改动，且可逆。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| 仓库改名长期挂起 | 改名未完成则文档与事实持续不一致（虽然已刻意保持同步）。建议尽快由用户执行 |
+| `.gitattributes` 影响其他克隆 | 若用户在别处已有该仓库的克隆，`eol=lf` 可能在那些克隆上触发重规范化。当前已知只有本机一份克隆 |
+| 换行符变更未在真机验证编辑器行为 | 本机编辑器（VS Code 等）对 LF 无碍，但未逐一验证 |
+
+### Next Step
+
+1. **用户在 GitHub 网页端执行仓库改名**（R-1）→ 然后 agent 执行 `git remote set-url`（R-2）与文档引用更新（R-3）
+2. Phase 3：产出「支持表达清单」；关闭 OD-001
+3. Phase 4：领域层 `timeParser` + 建立 `node --test` 测试载体

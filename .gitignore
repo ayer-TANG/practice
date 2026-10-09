@@ -11,3 +11,7 @@ Desktop.ini
 # 日志与临时文件
 *.log
 *.tmp
+
+# 第三方工具：skill 包，不是产品代码，不纳入版本控制
+# 保留在本地供开发使用；如需重装，从上游重新获取
+idea-to-production-vibecoding-main/

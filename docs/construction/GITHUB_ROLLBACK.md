@@ -16,10 +16,21 @@
 
 ## Baseline
 
-| 记录时间 | Baseline commit | 说明 |
+| 记录时间 | Commit | 说明 |
 |---|---|---|
-| 2026-10-09 | `b764476` | 仓库初始化。Phase 0–1 的回滚点 |
-| 2026-10-09 | （Phase 1 提交后补记） | Phase 1 施工文档 |
+| 2026-10-09 | `b764476` | 仓库初始化。Phase 0 的回滚点 |
+| 2026-10-09 | `ce56c9b` | Phase 1 主体：建立产品与施工文档体系（20 files） |
+| 2026-10-09 | `9d693c1` | Phase 1 补记：handoff 的提交号与推送状态 |
+
+## Backup Branches
+
+| 分支 | 指向 | 推送时间 | 用途 |
+|---|---|---|---|
+| `backup/pre-phase2-repo-setup-20261009-1745` | `9d693c1` | 2026-10-09 17:45 | **Phase 3–9 全程回滚点**，文档体系完成、尚无代码的状态 |
+
+已通过 `git ls-remote --heads origin` 确认该分支存在于远端。
+
+**不得删除。** 它是本项目"应用代码出现之前"的唯一远端快照。
 
 ---
 
@@ -57,7 +68,7 @@ backup/pre-phase4-timeparser-20261009-1740
 backup/pre-phase6-ui-20261010-0930
 ```
 
-**`backup/pre-phase2-*` 是 Phase 3–9 全程的回滚点，不得删除。**
+**`backup/pre-phase2-repo-setup-20261009-1745` 是 Phase 3–9 全程的回滚点，不得删除。**
 
 本地分支不是远端备份。
 
@@ -100,7 +111,8 @@ git revert <oldest-bad-commit>^..<newest-bad-commit>
 - 不把它们裹进本阶段的提交
 - 绕开它们；若无法绕开则停下来问用户
 
-当前已知的未跟踪内容：`idea-to-production-vibecoding-main/`（第三方 skill 包，归属待定，见 Phase 2）。
+`idea-to-production-vibecoding-main/` 已于 Phase 2 加入 `.gitignore`，
+不再出现在 `git status` 中。若接手时它仍显示为未跟踪，说明 `.gitignore` 被改动过，需查清原因。
 
 ---
 
@@ -108,12 +120,15 @@ git revert <oldest-bad-commit>^..<newest-bad-commit>
 
 因 D-008（产品名同时用作仓库名与目录名），以下改名待办：
 
-| # | 操作 | 计划时机 | 备注 |
-|---|---|---|---|
-| R-1 | GitHub 仓库改名 `practice` → `zhaiwu` | Phase 2 | GitHub 会自动为重定向保留旧地址 |
-| R-2 | `git remote set-url origin <新地址>` | Phase 2 | 紧随 R-1 |
-| R-3 | 更新文档中所有 `practice` 引用 | Phase 2 | `AGENTS.md`、`GITHUB_ROLLBACK.md`、`PRODUCT_REQUIREMENTS.md` |
-| R-4 | 本地目录改名 `war` → `zhaiwu` | Phase 9（收尾） | **物理约束**：当前会话工作目录在该目录内，中途改名会让会话失效。收尾时由用户执行或用户批准后执行 |
+| # | 操作 | 执行者 | 状态 | 备注 |
+|---|---|---|---|---|
+| R-1 | GitHub 仓库改名 `practice` → `zhaiwu` | **用户（网页端）** | **待执行** | 本机 `gh: command not found`，agent 无法代执行。路径：仓库 Settings → Repository name。GitHub 会自动重定向旧地址 |
+| R-2 | `git remote set-url origin https://github.com/ayer-TANG/zhaiwu.git` | agent | 待 R-1 | 紧随 R-1 |
+| R-3 | 更新文档中所有 `practice` 引用 | agent | 待 R-1 | `AGENTS.md`、`GITHUB_ROLLBACK.md`、`PRODUCT_REQUIREMENTS.md`、`README.md`、`HANDOFF.md` |
+| R-4 | 本地目录改名 `war` → `zhaiwu` | 用户 | 待 Phase 9 | **物理约束**：当前会话工作目录在该目录内，中途改名会让会话失效。收尾时由用户执行或用户批准后执行 |
+
+**R-1 是当前唯一的挂起项。** 在它完成之前，本文件与 `AGENTS.md` 中的仓库 URL
+刻意保持为 `practice`——文档必须与事实一致，不能比事实更超前。
 
 ---
 

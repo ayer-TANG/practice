@@ -27,10 +27,8 @@
 
 ## 未完成
 
-- Git backup 分支尚未创建（Phase 2）
-- 仓库改名 `practice` → `zhaiwu`（Phase 2）
-- `idea-to-production-vibecoding-main/` 归属未定（Phase 2）
-- 本地目录改名（Phase 9）
+- **仓库改名 `practice` → `zhaiwu`** —— 受阻于本机无 `gh` CLI，需用户在网页端执行
+- 本地目录改名（Phase 9，物理约束）
 
 ## 依赖
 

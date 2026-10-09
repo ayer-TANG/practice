@@ -38,8 +38,11 @@
 - 如实报告状态（Complete / Partially complete / Blocked）
 
 ## Current Phase
-Phase 1 完成：施工文档已建立，尚无应用代码。
-下一步：Phase 2（Git 安全与仓库整理）→ Phase 3（支持表达清单与 OD-001 关闭）。
+Phase 2 部分完成：backup 分支已建并推送、skill 目录已忽略、换行符策略已统一。
+**未完成**：仓库改名 `practice` → `zhaiwu`（本机无 `gh` CLI，需用户在网页端执行，见 `GITHUB_ROLLBACK.md` 的 Rename Queue）。
+
+下一步：用户在网页端完成仓库改名 → agent 执行 `git remote set-url` 并更新文档引用
+→ Phase 3（支持表达清单与 OD-001 关闭）。
 
 > 阶段编号以 `docs/construction/CONSTRUCTION_PLAN.md` 为准。它与 skill
 > `idea-to-production-vibecoding` 自身的 Phase 编号**不一致**，引用时不要混淆。
