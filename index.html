@@ -116,8 +116,21 @@
   .empty { color: var(--muted); font-size: 14px; margin: 0; }
   .empty strong { color: var(--text); }
   .actions { margin-top: 14px; }
-  /* pointer-events 关掉，否则 :hover 仍会匹配 disabled 按钮，看着像可点 */
-  button:disabled { opacity: .45; pointer-events: none; }
+  /* 禁用态要「看得见、点不了」。
+     曾经用整块 opacity: .45——在白卡片上边框几乎消失、文字也糊成浅灰，
+     用户直接反馈「按钮不显示」（实测 opacity .45 + #e2e5ea 边框 ≈ 看不见）。
+     改成显式配色：底色压暗一档、文字换成 --muted、边框保持可见。
+     量过：可用态 color rgb(27,29,33) / bg #fff，禁用态 color rgb(107,114,128)
+     / bg #f1f3f6——两个维度都拉开，才有「灰但读得出」的效果。 */
+  button:disabled {
+    opacity: 1;
+    color: var(--muted);
+    background: #f1f3f6;
+    border-color: var(--line);
+    cursor: default;
+    /* 不关的话 :hover 仍会匹配 disabled 按钮，鼠标一放上去就变色，看着像可点 */
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -1068,18 +1081,31 @@
   }
 
   // 粘贴事件触发时文本框**还没被改写**，此刻的选区就是即将被替换掉的范围；
-  // 插入的结果要等 input 事件才读得到。于是分两步。
+  // 真正的插入结果要等浏览器写完之后才读得到。于是分两步。
   function onPaste() {
-    pendingPaste = {
+    var p = {
       before: chatInput.value,
       start: chatInput.selectionStart,
       end: chatInput.selectionEnd
     };
+    pendingPaste = p;
+
+    // 正常路径：粘贴后浏览器会补发 input 事件，由 commitPaste 结账。
+    // **但不能只靠它**——万一某个浏览器不发，按钮就永远不会亮，
+    // 而「按钮不亮」是本功能最坏的失败形态：用户会以为功能根本不存在。
+    // 所以再加一条兜底：交给宏任务，等默认粘贴动作把 value 写完再读一次。
+    // 谁先到谁结账，另一个看到 pendingPaste 已被清空就什么都不做。
+    setTimeout(function () {
+      if (pendingPaste === p) commitPaste(p);
+    }, 0);
   }
 
   function onInput() {
     if (!pendingPaste) return;
-    var p = pendingPaste;
+    commitPaste(pendingPaste);
+  }
+
+  function commitPaste(p) {
     pendingPaste = null;
 
     // 被粘进来的长度 = 文本新增长度 + 被覆盖掉的那段选区长度
