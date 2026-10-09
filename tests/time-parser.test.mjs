@@ -118,8 +118,10 @@ const D_RELATIVE = [
   ['1个工作日内', '2026-10-12 23:59']
 ];
 
-// §1.E 紧迫词（7 条）—— 约定映射为 today 23:59，标记 fuzzy
-const E_URGENCY = ['尽快', '马上', '抓紧', '赶紧', '第一时间', '立刻', '马上就好'];
+// §1.E 紧迫词（8 条）—— 约定映射为 today 23:59，标记 fuzzy
+// `越快越好` 是 Phase 8 用真实语料补进来的（F8-15）。注意它与 `马上就好` 一样
+// **只在 §1.E，不在 §4 的紧迫类**：它是时间表达，不是「这行是任务」的信号。
+const E_URGENCY = ['尽快', '马上', '抓紧', '赶紧', '第一时间', '立刻', '马上就好', '越快越好'];
 
 const SUPPORTED_GROUPS = [
   ['§1.A 绝对日期', A_ABSOLUTE],
@@ -129,10 +131,10 @@ const SUPPORTED_GROUPS = [
 ];
 
 describe('§1 支持清单', () => {
-  test('清单条目总数为 75（与 SUPPORTED_EXPRESSIONS.md 一致）', () => {
+  test('清单条目总数为 76（与 SUPPORTED_EXPRESSIONS.md 一致）', () => {
     const total = SUPPORTED_GROUPS.reduce((n, [, rows]) => n + rows.length, 0)
       + E_URGENCY.length;
-    assert.equal(total, 75);
+    assert.equal(total, 76);
   });
 
   for (const [label, rows] of SUPPORTED_GROUPS) {

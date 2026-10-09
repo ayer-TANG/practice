@@ -4,7 +4,7 @@
 
 ## 状态
 
-**已完成**（Phase 5）。7 个导出全部实现并有测试覆盖，`node --test` → 315 passed。
+**已完成**（Phase 5）。7 个导出全部实现并有测试覆盖，`node --test` → 364 passed（Phase 5 完成时为 315，Phase 8 词表补齐后为 364）。
 本层不会再因开发而改动，除非 Phase 8 的真实数据校准要求增删动作词。
 
 > 领域层完成不等于产品可用——界面与交付层分别在 Phase 6 / Phase 7。
@@ -59,15 +59,15 @@ Task {
 | 项 | 状态 |
 |---|---|
 | `Task` 类型 | **已完成**（Phase 5），`makeTask` 是唯一的构造入口 |
-| `timeParser` | **已完成**（Phase 4），`node --test` 覆盖 §1 全部 75 条 + §2 全部 28 条 |
+| `timeParser` | **已完成**（Phase 4），`node --test` 覆盖 §1 全部 76 条 + §2 全部 28 条 |
 | `timeParserDetail` | **已完成**（Phase 4）—— 承载 `fuzzy`，见 D-011 |
 | `isTaskLine` | **已完成**（Phase 5） |
 | `taskExtractor` | **已完成**（Phase 5） |
 | `sorter` | **已完成**（Phase 5） |
 | `parse` 组装 | **已完成**（Phase 5） |
 | 时间词表 | **已建立**（数据化的 `DATE_PATTERNS` / `TIME_PATTERNS` / `REL_PATTERNS` / `REJECT_PATTERNS`） |
-| 动作词表 | **已建立**（Phase 5，数据化的 `ACTION_WORDS` 56 词 + `FILLER_WORDS` 21 词） |
-| 测试 | `node --test` → **315 passed / 0 failed** |
+| 动作词表 | **已建立**（Phase 5 建表 56 词；Phase 8 补齐 15 词，现 71 词；另有 `FILLER_WORDS` 21 词） |
+| 测试 | `node --test` → **364 passed / 0 failed**（领域层；全仓 417） |
 
 ### Phase 4 实现落点
 
@@ -91,7 +91,7 @@ Phase 5 追加了动作词表，**未改动这四张表**（预测正确）。
 
 | 项 | 对应规格 | 说明 |
 |---|---|---|
-| `ACTION_WORDS` | §4 正向 | 56 词，分 5 类（请求/提醒/交付推进/截止/紧迫/Phase5补充） |
+| `ACTION_WORDS` | §4 正向 | 71 词，分 7 类（请求/提醒/交付推进/截止/紧迫/Phase5补充/Phase8补充） |
 | `FILLER_WORDS` | §4 反向 | 21 词，按**整行**匹配，不是子串 |
 
 | 函数 | 说明 |
@@ -149,7 +149,7 @@ Phase 5 追加了动作词表，**未改动这四张表**（预测正确）。
 
 | 文件 | 内容 |
 |---|---|
-| `tests/task-extractor.test.mjs` | §4 反向 21 词 → 含寒暄词但仍是任务的边界 → §4 正向 56 词 → 切分 → 已知误检与已知漏检 |
+| `tests/task-extractor.test.mjs` | §4 反向 21 词 → 含寒暄词但仍是任务的边界 → §4 正向 71 词 → 切分 → 已知误检与已知漏检 |
 | `tests/parse.test.mjs` | `makeTask` 形状 → `sorter` → `parse` 端到端 → 输出不变式 |
 
 **已知误检与已知漏检都是断言，不是注释。** 它们锁定的是当前的、不理想的**现状**——

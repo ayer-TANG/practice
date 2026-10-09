@@ -1,14 +1,14 @@
 # Test Metrics
 
-**当前测试基线：`384 passed / 0 failed`（`node --test`）**
+**当前测试基线：`417 passed / 0 failed`（`node --test`）**
 
 领域层三个子模块（`timeParser` / `taskExtractor` / `sorter`）与组装函数 `parse`
-的单元测试已全部建立并通过（331）。交付层的 `renderMarkdown` 纯函数测试已建立（53）。
+的单元测试已全部建立并通过（364）。交付层的 `renderMarkdown` 纯函数测试已建立（53）。
 UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 （**脚本有意不进仓库，不计入上表基线**）。浏览器行为与真实数据度量仍未建立
 ——见下方「未建立项」。
 
-最后更新：2026-10-09（Phase 8，第 2 组）
+最后更新：2026-10-09（Phase 8，词表补齐轮 F8-9 / F8-15）
 
 ---
 
@@ -20,7 +20,7 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 | 测试文件 | `tests/time-parser.test.mjs`、`tests/task-extractor.test.mjs`、`tests/parse.test.mjs`、`tests/delivery.test.mjs` |
 | 测试引导（不匹配测试命名，不被采集） | `tests/load-block.mjs`、`tests/load-domain.mjs`、`tests/load-delivery.mjs` |
 | 测试命令 | `node --test` |
-| **通过 / 失败** | **384 / 0** |
+| **通过 / 失败** | **417 / 0** |
 | lint | **Not established** |
 | typecheck | **Not established**（项目不使用 TypeScript） |
 | build | **Not established**（项目无构建步骤——这是刻意设计，不是缺失） |
@@ -36,9 +36,9 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 >
 > | 命令 | 结果 |
 > |---|---|
-> | `node --test` | 384 passed —— **本项目采用这个** |
-> | `node --test "tests/**/*.test.mjs"` | 384 passed |
-> | `node --test tests/*.test.mjs` | 384 passed |
+> | `node --test` | 417 passed —— **本项目采用这个** |
+> | `node --test "tests/**/*.test.mjs"` | 417 passed |
+> | `node --test tests/*.test.mjs` | 417 passed |
 >
 > 三者 Phase 8 复测仍一致（Phase 4 建立该表时为 315）。
 >
@@ -52,13 +52,13 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 · 时间解析 | `tests/time-parser.test.mjs` | Phase 4 | `timeParser` —— §1 全部 75 条 + §2 全部 28 条 + 边界 + 缺省时刻（146 条） |
-| 领域层单元测试 · 任务识别 | `tests/task-extractor.test.mjs` | Phase 5 | `isTaskLine` / `taskExtractor` —— §4 正向 56 词、反向 21 词、整行匹配边界、已知误检与漏检 |
+| 领域层单元测试 · 时间解析 | `tests/time-parser.test.mjs` | Phase 4 | `timeParser` —— §1 全部 76 条 + §2 全部 28 条 + 边界 + 缺省时刻（147 条） |
+| 领域层单元测试 · 任务识别 | `tests/task-extractor.test.mjs` | Phase 5 / 8 | `isTaskLine` / `taskExtractor` —— §4 正向 71 词、反向 21 词、整行匹配边界、已知误检与漏检（192 条） |
 | 领域层单元测试 · 组装与排序 | `tests/parse.test.mjs` | Phase 5 | `makeTask` / `sorter` / `parse` 端到端 |
 | 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间。**扫的是 `index.html` 的领域层全文**，因此 Phase 5 新增代码自动被覆盖 |
 | 导出契约守门 | `tests/load-domain.mjs`、`tests/load-delivery.mjs` | Phase 5 / 7 | 必需导出缺一即抛错，不让测试报出难懂的错 |
 | **交付层纯函数** | `tests/delivery.test.mjs` | Phase 7 | `renderMarkdown` 的转义、分组、标记、边界、纯度（53 条） |
-| **UI 渲染与状态 + 导出链路** | 一次性 DOM 桩（**不进仓库**） | Phase 6 / 7 | 渲染与状态流转、复制三级回退链路、下载调用。**不计入 384 基线** |
+| **UI 渲染与状态 + 导出链路** | 一次性 DOM 桩（**不进仓库**） | Phase 6 / 7 | 渲染与状态流转、复制三级回退链路、下载调用。**不计入 417 基线** |
 | 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
 
 ## 计划建立的检查
