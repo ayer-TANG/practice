@@ -105,7 +105,7 @@ Phase 3 执行的检查：
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `8eca9a5`（Phase 2 收工） |
-| Phase 3 提交 | 见下方 Latest Commit |
+| Phase 3 提交 | `47b50fb`（已推送） |
 | 远端分支 | `main`、`backup/pre-phase2-repo-setup-20261009-1745` |
 | remote | `https://github.com/ayer-TANG/practice`（**待改名 `zhaiwu`**） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -134,7 +134,7 @@ git switch main
 | `9d693c1` | Phase 1 补记：handoff 提交号 |
 | `6a977fb` | Phase 2 主体：建立远端回滚点并整理仓库环境 |
 | `8eca9a5` | Phase 2 补记：handoff 提交号与推送状态 |
-| Phase 3 提交 | 见 `git log --oneline -3`；本文件所在提交即 Phase 3 收工提交 |
+| `47b50fb` | Phase 3 主体：冻结解析器能力边界（含 SUPPORTED_EXPRESSIONS.md） |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，Phase 3 同理。
@@ -145,7 +145,7 @@ git switch main
 
 ```
 To https://github.com/ayer-TANG/practice
-   8eca9a5..<Phase 3 提交>  main -> main
+   8eca9a5..47b50fb  main -> main
 ```
 
 ## Working Tree
