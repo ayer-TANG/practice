@@ -4,8 +4,9 @@
 - Project: 摘务 (zhaiwu)
 - Owner: ayer-TANG
 - Brand: 摘务
-- Repository: https://github.com/ayer-TANG/practice
-  - 计划改名为 `zhaiwu`，见 `docs/construction/GITHUB_ROLLBACK.md` 的 Rename Queue
+- Repository: https://github.com/ayer-TANG/zhaiwu
+  - 已于 2026-10-09 由 `practice` 改名而来，`origin` 已同步。见 `docs/construction/GITHUB_ROLLBACK.md` 的 Rename Queue
+- Local directory: `D:\xuexi\war`（**计划改为** `D:\xuexi\zhaiwu`，R-4，待 Phase 9）
 
 ## Instruction Priority
 1. 用户最新明确指令
@@ -42,8 +43,8 @@ Phase 5 完成：**领域层已完成**（`node --test` → **315 passed**）。
 `parse(text, now) => Task[]` 已可用，端到端能跑出排好序的任务列表。
 **但产品仍不可用**——`index.html` 里没有一行界面代码，只有领域层和一行占位文字。
 
-Phase 2 仍有一项挂起：仓库改名 `practice` → `zhaiwu`（本机无 `gh` CLI，需用户在网页端执行，
-见 `GITHUB_ROLLBACK.md` 的 Rename Queue）。**它不阻塞后续阶段。**
+仓库改名 `practice` → `zhaiwu` **已完成**（用户于 2026-10-09 在网页端执行 R-1，
+agent 已执行 R-2 与 R-3）。仅剩 R-4（本地目录改名，待 Phase 9，属物理约束）。
 
 下一步：Phase 6（UI 层）——粘贴区、抽取按钮、结果列表、手动补漏、误检删除。
 动手前先读 `LAYER_CONTRACT.md` 的 UI 层一节：**UI 层不得内嵌任何正则或词表**，

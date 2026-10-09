@@ -79,10 +79,14 @@
 
 ---
 
-## Phase 2: Git 安全与仓库整理 ▶ 部分完成
+## Phase 2: Git 安全与仓库整理 ✅
 
-> 状态说明：backup 分支、skill 目录处置、换行符策略**已完成**。
-> 仓库改名**受阻**——本机 `gh` CLI 不可用，需用户在 GitHub 网页端执行 R-1，见 `GITHUB_ROLLBACK.md`。
+> 状态说明：backup 分支、skill 目录处置、换行符策略于 Phase 2 完成。
+> 仓库改名当时**受阻**（本机无 `gh` CLI，需用户在网页端执行 R-1），
+> **已由用户于 2026-10-09 完成**；agent 随后执行 R-2（`git remote set-url`）与
+> R-3（文档引用更新）。见 `GITHUB_ROLLBACK.md` 的 Rename Queue。
+>
+> R-4（本地目录 `war` → `zhaiwu`）仍待 Phase 9，属物理约束，非阻塞。
 
 ### Goal
 在写第一行应用代码之前，建立已推送的远端回滚点；完成仓库改名。

@@ -8,7 +8,7 @@
 
 | 项 | 值 |
 |---|---|
-| remote `origin` | `https://github.com/ayer-TANG/practice`（**计划改为** `https://github.com/ayer-TANG/zhaiwu`） |
+| remote `origin` | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名而来） |
 | 默认分支 | `main` |
 | 远程类型 | HTTPS（非 SSH，无密钥读取需求） |
 | 本地目录 | `D:\xuexi\war`（**计划改为** `D:\xuexi\zhaiwu`） |
@@ -27,6 +27,7 @@
 | 2026-10-09 | `3d48ebe` | Phase 3 补记：handoff 的提交号与推送状态 |
 | 2026-10-09 | `14afad0` | Phase 4 主体：实现 `timeParser` 并建立测试载体（第一行应用代码） |
 | 2026-10-09 | `45d4d2d` | Phase 4 补记：handoff 的提交号与推送状态 |
+| 2026-10-09 | `e6599cd` | Phase 5 主体：实现 `taskExtractor` / `sorter` / `parse`，**领域层完成** |
 
 ## Backup Branches
 
@@ -133,13 +134,28 @@ git revert <oldest-bad-commit>^..<newest-bad-commit>
 
 | # | 操作 | 执行者 | 状态 | 备注 |
 |---|---|---|---|---|
-| R-1 | GitHub 仓库改名 `practice` → `zhaiwu` | **用户（网页端）** | **待执行** | 本机 `gh: command not found`，agent 无法代执行。路径：仓库 Settings → Repository name。GitHub 会自动重定向旧地址 |
-| R-2 | `git remote set-url origin https://github.com/ayer-TANG/zhaiwu.git` | agent | 待 R-1 | 紧随 R-1 |
-| R-3 | 更新文档中所有 `practice` 引用 | agent | 待 R-1 | `AGENTS.md`、`GITHUB_ROLLBACK.md`、`PRODUCT_REQUIREMENTS.md`、`README.md`、`HANDOFF.md` |
-| R-4 | 本地目录改名 `war` → `zhaiwu` | 用户 | 待 Phase 9 | **物理约束**：当前会话工作目录在该目录内，中途改名会让会话失效。收尾时由用户执行或用户批准后执行 |
+| R-1 | GitHub 仓库改名 `practice` → `zhaiwu` | 用户（网页端） | ✅ **2026-10-09** | 本机 `gh: command not found`，agent 无法代执行。GitHub 自动重定向旧地址 |
+| R-2 | `git remote set-url origin https://github.com/ayer-TANG/zhaiwu.git` | agent | ✅ **2026-10-09** | 已用 `git fetch` + `git rev-list --left-right --count` 验证同步 |
+| R-3 | 更新文档中所有 `practice` 引用 | agent | ✅ **2026-10-09** | 当前事实性引用已改；历史日志（`LOG.md`、`DEV_PROGRESS.md` 的完成记录）按「不删除历史条目」原则保留原文 |
+| R-4 | 本地目录改名 `war` → `zhaiwu` | 用户 | **待 Phase 9** | **物理约束**：当前会话工作目录在该目录内，中途改名会让会话失效。收尾时由用户执行或用户批准后执行 |
 
-**R-1 是当前唯一的挂起项。** 在它完成之前，本文件与 `AGENTS.md` 中的仓库 URL
-刻意保持为 `practice`——文档必须与事实一致，不能比事实更超前。
+**R-1 的完成是被 agent 发现的，不是被通知的**：Phase 5 推送时远端回显了
+`remote: https://github.com/ayer-TANG/zhaiwu.git`。随后用 `git ls-remote` 对新旧两个
+地址各取一次 refs——两者的提交哈希完全一致，且新地址上有刚推送的提交——
+只可能是「同一仓库 + 旧地址重定向」。**确认后才动的文档。**
+
+**现在只剩 R-4。**
+
+## 改名后的历史说明
+
+本文件、`LOG.md`、`DEV_PROGRESS.md` 中仍会出现 `practice` 字样，分两种情况：
+
+| 情况 | 处理 |
+|---|---|
+| 描述**当时**发生了什么（日志、决策记录、阶段完成记录） | **保留原文**。历史不得改写 |
+| 描述**当前**仓库地址 | 已全部改为 `zhaiwu` |
+
+看到 `practice` 时先判断它属于哪一类，不要一律替换。
 
 ---
 

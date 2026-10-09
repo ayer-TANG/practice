@@ -19,7 +19,9 @@
 
 下一步是 Phase 6（UI 层）。
 
-Phase 2 仍有一项挂起——仓库改名，它需要用户操作，且**不阻塞任何后续阶段**。
+**仓库改名已完成**（`practice` → `zhaiwu`）：用户在网页端执行 R-1，
+agent 在 Phase 5 收工时发现（远端回显了新地址）并执行 R-2（`git remote set-url`）
+与 R-3（文档引用更新）。现在只剩 R-4（本地目录改名，待 Phase 9）。
 
 ## Completed
 
@@ -60,8 +62,8 @@ Phase 2 仍有一项挂起——仓库改名，它需要用户操作，且**不�
 | 真实数据验收（A-001~A-006） | 按计划在 Phase 8 |
 | **动作词表的校准** | 56 词里 12 个是判断而非数据，待 Phase 8 用真实语料增减 |
 | **发言人前缀剥离** | 推迟到 Phase 8。粘贴格式随客户端而异，无真实数据时猜格式等于凭感觉写规则 |
-| **仓库改名 `practice` → `zhaiwu`** | 本机 `gh: command not found`，需用户在 GitHub 网页端执行 R-1 |
-| 本地目录改名 `war` → `zhaiwu` | 物理约束（会话工作目录在内），推迟到 Phase 9 |
+| ~~仓库改名 `practice` → `zhaiwu`~~ | **已完成**（2026-10-09，R-1/R-2/R-3） |
+| 本地目录改名 `war` → `zhaiwu`（R-4） | 物理约束（会话工作目录在内），推迟到 Phase 9 |
 
 ## Next Tasks
 
@@ -157,7 +159,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | Baseline commit | `45d4d2d`（Phase 4 收工） |
 | Phase 5 提交 | 见下方 Latest Commit |
 | 远端分支 | `main`、`backup/pre-phase2-repo-setup-20261009-1745`、`backup/pre-phase4-timeparser-20261009-1844`、`backup/pre-phase5-extractor-20261009-1900` |
-| remote | `https://github.com/ayer-TANG/practice`（**待改名 `zhaiwu`**） |
+| remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
 
 ## Backup Branch
@@ -176,15 +178,26 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | `14afad0` | Phase 4 主体：实现 timeParser 并建立测试载体（第一行应用代码） |
 | `45d4d2d` | Phase 4 补记：handoff 提交号与推送状态 |
-| `<Phase 5 主体>` | Phase 5 主体：实现 taskExtractor / sorter / parse（见 `LOG.md`） |
+| `e6599cd` | **Phase 5 主体**：实现 taskExtractor / sorter / parse，领域层完成（见 `LOG.md`） |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
-> Phase 3 是 `3d48ebe`，Phase 4 是 `45d4d2d`。
+> Phase 3 是 `3d48ebe`，Phase 4 是 `45d4d2d`，Phase 5 是 `e6599cd`。
 
 ## Push Status
 
-**已推送。** 具体输出见紧随本提交之后的补记提交。
+**已推送。**
+
+```
+To https://github.com/ayer-TANG/practice
+   45d4d2d..e6599cd  main -> main
+```
+
+> 注意上面的 URL 是**旧地址**：这次推送正是发现改名完成的时刻——远端回显了
+> `remote: https://github.com/ayer-TANG/zhaiwu.git`。随后的 `git ls-remote`
+> 确认新旧两个地址返回完全相同的 refs，才据此执行 R-2/R-3。
+> 之后 `origin` 已指向 `https://github.com/ayer-TANG/zhaiwu.git`，
+> 下一次推送的 URL 会是新地址。
 
 ## Working Tree
 
@@ -204,7 +217,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | **改模式表/词表会改变既有结果** | 中 | 改完**必须全量跑 `node --test`**。数量断言（69/28/38/56/21）会拦住漏改的文档 |
 | **领域层纯度易被破坏** | 中 | 8 条静态测试把关（无 DOM / 无网络 / 无 `new Date()` / 无 `Date.now()`）。**Phase 6 写 UI 时特别注意：UI 代码不要写进 `<script id="zhaiwu-domain">` 块内**，否则纯度检查会失败 |
 | **UI 层内嵌规则** | 中 | UI 一旦出现正则或词表就是架构漂移。判定标准见 `LAYER_CONTRACT.md` |
-| **仓库改名挂起** | 中 | 文档与事实一致（都写 `practice`），但"想改未改"一直挂着。不阻塞开发 |
+| **R-4 本地目录未改名** | 低 | 仓库已是 `zhaiwu`，本地目录仍是 `war`。物理约束，Phase 9 处理 |
 | `Task.raw` 与 `Task.text` 目前几乎相同 | 低 | 差别只有首尾空白。不剥离发言人前缀，`raw` 的价值有限。推迟到 Phase 8 |
 | `.gitattributes` 影响其他克隆 | 低 | 若用户在别处有克隆，`eol=lf` 可能触发重规范化。当前已知只有本机一份 |
 

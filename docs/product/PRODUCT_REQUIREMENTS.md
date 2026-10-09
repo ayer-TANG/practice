@@ -8,7 +8,7 @@
 - 产品名：摘务
 - 品牌：摘务
 - 负责人 / 管理员：ayer-TANG（单用户，无账号体系）
-- 仓库：https://github.com/ayer-TANG/practice（计划改名 `zhaiwu`）
+- 仓库：https://github.com/ayer-TANG/zhaiwu（2026-10-09 由 `practice` 改名而来，见 D-001 注）
 
 ## Product One-Liner
 
@@ -154,6 +154,12 @@
 | D-010 | 「尽快/马上/抓紧」类紧迫词约定映射为 **today 23:59** 并标 `fuzzy` | 紧急度只有时间一维（D-004），归为「无时间」会排到最后，与直觉相反；映射保留紧迫性又不发明具体时刻 | 归为无截止时间；新增独立紧迫度维度；归入特殊分组 | 2026-10-09 | Claude（用户可推翻） |
 | D-011 | `fuzzy` 由 `timeParserDetail(text, now) => { date, fuzzy }` 承载；`timeParser` 保持 `Date \| null` 不变 | `timeParser(text, now) => Date \| null` 是已冻结的契约（`01-domain.md`、`CONSTRUCTION_PLAN.md`）；但 D-010 要求 `fuzzy` 能传到 `Task` 上。让 `timeParser` 变成薄包装、另加一个返回详情的函数，两边都不破 | 改 `timeParser` 签名为返回对象（破坏已冻结契约）；把 `fuzzy` 塞进 `Date` 对象属性 | 2026-10-09 | Claude（用户可推翻） |
 | D-012 | 裸 `X点`（无时段词、X ≤ 12）按「今日 X:00 → 今日 (X+12):00 → 次日 X:00」取第一个晚于 `now` 的时刻 | `SUPPORTED_EXPRESSIONS.md` §0 只说「按上下文推断 12/24 小时制」，未定义推断规则，实现时必须有确定行为才能测试。该规则同时满足两件事：上午 9 点说「三点」得下午三点（符合工作场景直觉），以及 §0「已过则次日」的字面约定 | 只取 today X:00、已过则次日（上午 10 点说「3点」会得到次日凌晨 3 点）；取 X ≥ 7 算作上午（数字阈值无依据） | 2026-10-09 | Claude（用户可推翻） |
+
+> **D-001 补注（2026-10-09，不改写原决策）**：D-001 里写的 `ayer-TANG/practice`
+> 已由用户改名为 `ayer-TANG/zhaiwu`（R-1），`origin` 已同步（R-2）。
+> 原文字保留，是因为决策日志记录的是**当时**的判断依据。
+> 本地目录当时定为 `war`，改名 `zhaiwu` 排在 R-4、待 Phase 9。
+> 详见 `docs/construction/GITHUB_ROLLBACK.md` 的 Rename Queue。
 
 ## Assumption Register
 
