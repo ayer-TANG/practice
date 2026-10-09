@@ -103,6 +103,7 @@
     cursor: help;
   }
   .badge.manual { color: var(--muted); }
+  .badge.overdue { color: var(--danger); }
   .task-del {
     flex: 0 0 auto;
     border: none;
@@ -272,13 +273,13 @@
     if (mo < 1 || mo > 12) return null;
     var y = now.getFullYear();
     if (da < 1 || da > daysInMonth(y, mo - 1)) return null;
-    var d = new Date(y, mo - 1, da);
-    // 该日已过则顺延到下一年
-    if (d < dayStart(now)) {
-      if (da > daysInMonth(y + 1, mo - 1)) return null;
-      d = new Date(y + 1, mo - 1, da);
-    }
-    return d;
+    // **已过不回卷**（Phase 8，F8-6，用户决策）：
+    // 原规则「该日已过则顺延到下一年」会把通知里的旧日期静默改成明年——
+    // 列表上看不出 2026 还是 2027（A-006 警告的那一类）。
+    // 真实语料里这类日期大多是**文中已发生**的，不是待办截止。
+    // 现在取当年的该日，落在过去就落在过去：逾期项由 `sorter` 升序排到最前，
+    // 一眼可见，比静默跳一年安全。
+    return new Date(y, mo - 1, da);
   }
 
   var WEEKDAY_CHAR = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7, '天': 7 };
@@ -1053,6 +1054,18 @@
     text.className = 'task-text';
     text.textContent = t.text;
 
+    // F8-6（Phase 8，用户决策）：无年份的月日已过时不再回卷到下一年，
+    // 取当年该日——于是它**可能落在过去**。真实通知里的月日多是「文中已发生」
+    // 的日期，判为逾期比静默改成明年安全。sorter 升序会把它排到最前，一眼可见。
+    // 判定基准是**屏幕渲染时刻**（与 parse 注入的 now 可能差几秒，逾期是「天」级判断）。
+    if (t.deadline !== null && t.deadline < new Date()) {
+      var od = document.createElement('span');
+      od.className = 'badge overdue';
+      od.textContent = '已过期';
+      od.title = '这个截止时间已经过去了。' +
+        '如果它其实指明年，请删除这条、用手动补漏填上正确日期。';
+      text.appendChild(od);
+    }
     if (t.fuzzy) {
       // D-010：紧迫词是「约定映射」而非对方原话，必须让用户看出来
       var b = document.createElement('span');
