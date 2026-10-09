@@ -1,9 +1,9 @@
 # Test Metrics
 
-**当前测试基线：`381 passed / 0 failed`（`node --test`）**
+**当前测试基线：`384 passed / 0 failed`（`node --test`）**
 
 领域层三个子模块（`timeParser` / `taskExtractor` / `sorter`）与组装函数 `parse`
-的单元测试已全部建立并通过（328）。交付层的 `renderMarkdown` 纯函数测试已建立（53）。
+的单元测试已全部建立并通过（331）。交付层的 `renderMarkdown` 纯函数测试已建立（53）。
 UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 （**脚本有意不进仓库，不计入上表基线**）。浏览器行为与真实数据度量仍未建立
 ——见下方「未建立项」。
@@ -20,7 +20,7 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 | 测试文件 | `tests/time-parser.test.mjs`、`tests/task-extractor.test.mjs`、`tests/parse.test.mjs`、`tests/delivery.test.mjs` |
 | 测试引导（不匹配测试命名，不被采集） | `tests/load-block.mjs`、`tests/load-domain.mjs`、`tests/load-delivery.mjs` |
 | 测试命令 | `node --test` |
-| **通过 / 失败** | **381 / 0** |
+| **通过 / 失败** | **384 / 0** |
 | lint | **Not established** |
 | typecheck | **Not established**（项目不使用 TypeScript） |
 | build | **Not established**（项目无构建步骤——这是刻意设计，不是缺失） |
@@ -36,9 +36,9 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 >
 > | 命令 | 结果 |
 > |---|---|
-> | `node --test` | 381 passed —— **本项目采用这个** |
-> | `node --test "tests/**/*.test.mjs"` | 381 passed |
-> | `node --test tests/*.test.mjs` | 381 passed |
+> | `node --test` | 384 passed —— **本项目采用这个** |
+> | `node --test "tests/**/*.test.mjs"` | 384 passed |
+> | `node --test tests/*.test.mjs` | 384 passed |
 >
 > 三者 Phase 8 复测仍一致（Phase 4 建立该表时为 315）。
 >
@@ -52,13 +52,13 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 · 时间解析 | `tests/time-parser.test.mjs` | Phase 4 | `timeParser` —— §1 全部 74 条 + §2 全部 28 条 + 边界 + 缺省时刻（143 条） |
+| 领域层单元测试 · 时间解析 | `tests/time-parser.test.mjs` | Phase 4 | `timeParser` —— §1 全部 75 条 + §2 全部 28 条 + 边界 + 缺省时刻（146 条） |
 | 领域层单元测试 · 任务识别 | `tests/task-extractor.test.mjs` | Phase 5 | `isTaskLine` / `taskExtractor` —— §4 正向 56 词、反向 21 词、整行匹配边界、已知误检与漏检 |
 | 领域层单元测试 · 组装与排序 | `tests/parse.test.mjs` | Phase 5 | `makeTask` / `sorter` / `parse` 端到端 |
 | 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间。**扫的是 `index.html` 的领域层全文**，因此 Phase 5 新增代码自动被覆盖 |
 | 导出契约守门 | `tests/load-domain.mjs`、`tests/load-delivery.mjs` | Phase 5 / 7 | 必需导出缺一即抛错，不让测试报出难懂的错 |
 | **交付层纯函数** | `tests/delivery.test.mjs` | Phase 7 | `renderMarkdown` 的转义、分组、标记、边界、纯度（53 条） |
-| **UI 渲染与状态 + 导出链路** | 一次性 DOM 桩（**不进仓库**） | Phase 6 / 7 | 渲染与状态流转、复制三级回退链路、下载调用。**不计入 381 基线** |
+| **UI 渲染与状态 + 导出链路** | 一次性 DOM 桩（**不进仓库**） | Phase 6 / 7 | 渲染与状态流转、复制三级回退链路、下载调用。**不计入 384 基线** |
 | 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
 
 ## 计划建立的检查
@@ -98,15 +98,16 @@ UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
 ### 清单的可执行性——已验证
 
 `SUPPORTED_EXPRESSIONS.md` 第 1 节的每一条已在 Phase 4 转成测试用例。
-清单自称 74 条，测试文件在 `§1 支持清单 › 清单条目总数为 74` 一条中**断言了这个数字**——
+清单自称 75 条，测试文件在 `§1 支持清单 › 清单条目总数为 75` 一条中**断言了这个数字**——
 清单改了而测试没跟上，测试会失败。
 
-**这条断言是有意加的**：成功标准 2 的分母就是这 74 条，
+**这条断言是有意加的**：成功标准 2 的分母就是这 75 条，
 分母数字漂移会让度量失去意义。同理，§2 的 28 条也有对应断言。
 
-> 数字在 Phase 8 由 69 变为 74：真实语料暴露「时段词 + 冒号时刻」（`下午16:00`）
-> 这类 §1.B 遗漏的组合，补齐后计入总数。**这就是数量断言在工作**——
-> 改清单必须同时改测试与该断言，一处漏掉就红。
+> 数字在 Phase 8 两次变化：69 → 74（真实语料暴露「时段词 + 冒号时刻」`下午16:00`
+> 这类 §1.B 遗漏的组合），74 → 75（同一批语料暴露带年份的数字日期 `2026-03-20`
+> 整段落空，年份被丢弃后错值顺延到下一年，见 F8-10）。
+> **这就是数量断言在工作**——改清单必须同时改测试与该断言，一处漏掉就红。
 
 Phase 5 沿用同一手法：§4 的动作词表断言 **38**（原表）/ **56**（含 Phase 5 新增）
 / **21**（反向词表）。这三条断言的作用不只是防漂移——它们让「词表被改了」

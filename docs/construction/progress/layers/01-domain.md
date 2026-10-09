@@ -59,7 +59,7 @@ Task {
 | 项 | 状态 |
 |---|---|
 | `Task` 类型 | **已完成**（Phase 5），`makeTask` 是唯一的构造入口 |
-| `timeParser` | **已完成**（Phase 4），`node --test` 覆盖 §1 全部 74 条 + §2 全部 28 条 |
+| `timeParser` | **已完成**（Phase 4），`node --test` 覆盖 §1 全部 75 条 + §2 全部 28 条 |
 | `timeParserDetail` | **已完成**（Phase 4）—— 承载 `fuzzy`，见 D-011 |
 | `isTaskLine` | **已完成**（Phase 5） |
 | `taskExtractor` | **已完成**（Phase 5） |

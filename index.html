@@ -312,6 +312,23 @@
         if (da < 1 || da > daysInMonth(y, mo - 1)) return null;
         return new Date(y, mo - 1, da);
       } },
+    // YYYY-MM-DD / YYYY/M/D —— 带**显式年份**的数字日期（Phase 8 补）。
+    //
+    // §1.A 原本只有「YYYY年X月X日」（中文写法）与「X/X」「X-Y」（无年份）。
+    // 真实教务系统通知大量写 `2026-03-20 23:59`，而它整段落空——
+    // 年份被丢弃，`03-20` 落进无年份的 `X-Y`，在 `now` 已过该日时**顺延到下一年**，
+    // 于是「2026-03-20」被读成 **2027**-03-20。**写明了年份反而被忽略**，
+    // 是静默的错值（A-006 警告的那一类：列表上看不出来）。
+    //
+    // 带年份 ⇒ 不回卷：年份是写死的，没有可推断的余地。
+    { re: /(?<!\d)(\d{4})\s*[-/／]\s*(\d{1,2})\s*[-/／]\s*(\d{1,2})(?!\d)/g,
+      kind: 'day',
+      make: function (m) {
+        var y = parseInt(m[1], 10), mo = parseInt(m[2], 10), da = parseInt(m[3], 10);
+        if (mo < 1 || mo > 12) return null;
+        if (da < 1 || da > daysInMonth(y, mo - 1)) return null;
+        return new Date(y, mo - 1, da);
+      } },
     { re: new RegExp('(' + NUM + ')\\s*月\\s*(' + NUM + ')\\s*[日号]', 'g'),
       kind: 'day',
       make: function (m, now) { return yearlessMonthDay(now, cnNum(m[1]), cnNum(m[2])); } },
