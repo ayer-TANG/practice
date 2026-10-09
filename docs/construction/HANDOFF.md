@@ -175,7 +175,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `42dc887`（Phase 5 收工） |
-| Phase 6 提交 | 见下方 Latest Commit |
+| Phase 6 提交 | `5fe892f`（主体） |
 | 远端分支 | `main`、`backup/pre-phase2-repo-setup-20261009-1745`、`backup/pre-phase4-timeparser-20261009-1844`、`backup/pre-phase5-extractor-20261009-1900`、`backup/pre-phase6-ui-20261009-1913` |
 | remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -199,20 +199,25 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `45d4d2d` | Phase 4 补记：handoff 提交号与推送状态 |
 | `e6599cd` | Phase 5 主体：实现 taskExtractor / sorter / parse，领域层完成 |
 | `42dc887` | Phase 5 补记：提交号与推送状态；仓库改名收尾（R-2 / R-3） |
-| `<Phase 6 主体>` | Phase 6 主体：实现 UI 层（样式 + 骨架 + `zhaiwu-ui` 脚本） |
+| `5fe892f` | **Phase 6 主体**：实现 UI 层（样式 + 骨架 + `zhaiwu-ui` 脚本） |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
 > Phase 3 是 `3d48ebe`，Phase 4 是 `45d4d2d`，Phase 5 是 `e6599cd`，
-> Phase 6 见本表的 `<Phase 6 主体>` 与后续补记。
+> Phase 6 是 `5fe892f`。
 
 ## Push Status
 
-**本轮推送状态：见紧随本文件的补记提交。**
+**已推送。**
 
-（Phase 5 的推送记录：`45d4d2d..e6599cd  main -> main`，当时远端回显的仍是旧地址
-`github.com/ayer-TANG/practice`——那正是发现改名完成的时刻。如今 `origin` 已是
-`zhaiwu`，下一次推送的 URL 会是新地址。）
+```
+To https://github.com/ayer-TANG/zhaiwu.git
+   42dc887..5fe892f  main -> main
+```
+
+> 这是**改名后第一次**推送，远端回显的已是新地址 `zhaiwu`——
+> 与 Phase 5 那次（回显旧地址 `practice`，从而暴露改名已完成）形成对照。
+> R-2 至此可以认为彻底生效。
 
 ## Working Tree
 
