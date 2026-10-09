@@ -36,7 +36,7 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 | 职责 | 定义 `Task`；`taskExtractor` 识别候选任务句；`timeParser` 解析时间表达；`sorter` 排序与分组；对外只暴露 `parse(text, now) => Task[]` |
 | 允许依赖 | 仅 JavaScript 内置能力 |
 | 禁止依赖 | **`document`、`window`、`fetch`、`localStorage`、任何 DOM API、任何 UI 概念、任何网络调用** |
-| 现状 | 不存在 |
+| 现状 | **部分完成**：`timeParser` + `timeParserDetail` 已实现并有测试覆盖；`Task`、`taskExtractor`、`sorter`、`parse` 待 Phase 5 |
 | 扩展点 | `parse` 契约不变的前提下，内部实现可整体替换为 LLM 解析器 |
 
 **判定标准**：本层必须能在 Node 中直接运行并通过全部测试。做不到即违规。
@@ -79,12 +79,16 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 | 项 | 内容 |
 |---|---|
 | 职责 | 覆盖领域层三个子模块的纯函数行为，含正向与反向用例 |
-| 允许依赖 | 领域层（通过 OD-001 决定的方式载入） |
+| 允许依赖 | 领域层（按 D-009：`node:vm` 从 `index.html` 提取代码块求值） |
 | 禁止依赖 | DOM；不得测试 UI 渲染（本版人工验证） |
-| 现状 | **Not established**（无测试文件、无测试脚本、无 `package.json`） |
+| 现状 | **已建立 —— 130 passed / 0 failed**，但只覆盖 `timeParser` |
 | 扩展点 | 若 UI 层复杂度上升，再考虑引入浏览器端 E2E |
 
-**测试载体**：Node 内置 `node:test` + `node:assert`，命令行 `node --test tests/`。
+**测试载体**：Node 内置 `node:test` + `node:assert`，命令行 **`node --test`**。
+
+> 不是 `node --test tests/`——Node 24 下位置参数被当作模块入口，报 `MODULE_NOT_FOUND`。
+> 详见 `TEST_METRICS.md`。
+
 不引入任何测试框架依赖。
 
 ---
@@ -93,8 +97,8 @@ UI 层 ──→ 领域层 ──→ (无外部依赖)
 
 | 层 | 状态 | 计划在哪个阶段实现 |
 |---|---|---|
-| 领域层 | 不存在 | Phase 4（`timeParser`）→ Phase 5（`taskExtractor` + `sorter`） |
-| UI 层 | 不存在 | Phase 6 |
+| 领域层 | **部分完成**（`timeParser` 已实现） | 剩余部分在 Phase 5（`Task` + `taskExtractor` + `sorter` + `parse`） |
+| UI 层 | 不存在（`index.html` 有骨架，无界面代码） | Phase 6 |
 | 交付层 | 不存在 | Phase 7 |
-| 测试边界 | Not established | Phase 4 起，与领域层同步建立，不等实现完再补 |
+| 测试边界 | **已建立**（130 passed，仅覆盖 `timeParser`） | 每阶段同步扩充，不等实现完再补 |
 | 其余四层 | N/A | 不会实现 |

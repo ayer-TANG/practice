@@ -1,10 +1,11 @@
 # Test Metrics
 
-**当前测试基线：`Not established`**
+**当前测试基线：`130 passed / 0 failed`（`node --test`）**
 
-仓库中不存在任何测试文件、测试脚本或测试运行配置。这不是"测试通过"，是"测试尚未建立"。
+领域层 `timeParser` 的单元测试已于 Phase 4 建立并全部通过。
+UI 层、交付层、真实数据度量仍未建立——见下方「未建立项」。
 
-最后更新：2026-10-09（Phase 1）
+最后更新：2026-10-09（Phase 4）
 
 ---
 
@@ -12,23 +13,49 @@
 
 | 项 | 状态 |
 |---|---|
-| 测试框架 | **未建立** |
-| 测试文件 | **无**（不存在 `tests/` 目录） |
-| 测试脚本 | **未建立**（无 `package.json`） |
+| 测试框架 | `node --test`（Node 内置，零依赖） |
+| 测试文件 | `tests/time-parser.test.mjs`、`tests/load-domain.mjs` |
+| 测试命令 | `node --test` |
+| **通过 / 失败** | **130 / 0** |
 | lint | **Not established** |
 | typecheck | **Not established**（项目不使用 TypeScript） |
 | build | **Not established**（项目无构建步骤——这是刻意设计，不是缺失） |
-| E2E | **未建立** |
+| E2E | **Not established** |
+
+> ⚠️ **测试命令的写法（Phase 4 实测修正）**
+>
+> `node --test tests/` **不成立**。在 Node 24 下，传给 `--test` 的位置参数被当作
+> 模块入口，`tests/` 会被当成一个模块去 `require`，报 `MODULE_NOT_FOUND`。
+> 本版 Node 已不再对目录做递归发现。
+>
+> 可用写法（Phase 4 实测）：
+>
+> | 命令 | 结果 |
+> |---|---|
+> | `node --test` | 130 passed —— **本项目采用这个** |
+> | `node --test "tests/**/*.test.mjs"` | 130 passed |
+> | `node --test tests/*.test.mjs` | 130 passed |
+>
+> 采用零参数的 `node --test`：它按 `**/*.test.mjs` 等模式从仓库根搜索，
+> 不依赖 shell 的 glob 展开，在 cmd / PowerShell / bash 下行为一致。
+> `tests/load-domain.mjs` 不匹配测试文件命名模式，实测未被采集。
+>
+> Phase 1–3 的文档一律写的 `node --test tests/`，已在 Phase 4 全部改正。
+
+## 已建立的检查
+
+| 检查 | 载体 | 建立于 | 覆盖范围 |
+|---|---|---|---|
+| 领域层单元测试 | `node --test` | Phase 4 | `timeParser` —— §1 全部 69 条 + §2 全部 28 条 + 边界 |
+| 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间 |
+| 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
 
 ## 计划建立的检查
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 | `node --test tests/` | Phase 4 | `timeParser` —— `SUPPORTED_EXPRESSIONS.md` 第 1 节**每一条**表达 + 边界 |
 | 领域层单元测试 | 同上 | Phase 5 | `taskExtractor` 正/反用例；`sorter` 排序与分组 |
 | 交付层单元测试 | 同上 | Phase 7 | `renderMarkdown` 纯函数输出 |
-| 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
-| 领域层纯度检查 | 静态检查领域层无 DOM 引用 | Phase 5 起每轮 | 架构漂移 |
 | UI 主路径 | **人工验证** | Phase 6 | 本版不做自动化，如实记录 |
 | 复制/下载 | **人工验证** | Phase 7 | Chrome / Edge 各一次 |
 
@@ -50,11 +77,14 @@
 因此必须先有「支持表达清单」，度量才有意义。该清单已于 Phase 3 产出，
 见 `docs/construction/SUPPORTED_EXPRESSIONS.md`。度量时必须先分类再计算，不得含糊。
 
-### 清单的可执行性要求
+### 清单的可执行性——已验证
 
-`SUPPORTED_EXPRESSIONS.md` 第 1 节中的**每一条**表达都必须能直接转成一条测试用例。
-这是 Phase 3 的验收标准，也是 Phase 4 的输入。若发现某条表达写成用例时有歧义，
-说明清单本身需要修改——**先改清单，再写测试**。
+`SUPPORTED_EXPRESSIONS.md` 第 1 节的每一条已在 Phase 4 转成测试用例。
+清单自称 69 条，测试文件在 `§1 支持清单 › 清单条目总数为 69` 一条中**断言了这个数字**——
+清单改了而测试没跟上，测试会失败。
+
+**这条断言是有意加的**：成功标准 2 的分母就是这 69 条，
+分母数字漂移会让度量失去意义。同理，§2 的 28 条也有对应断言。
 
 ## 测试用例设计原则
 
@@ -65,6 +95,13 @@
 3. **边界必测**：跨月（1月31日 + 1天）、跨年（12月31日 + 1天）、
    今天已过去的时间点（如 20:00 时说「今天中午」）、闰年。
 4. **样例自行编造**。禁止使用真实聊天记录（见 `CODEX_MASTER_REQUIREMENTS.md` 隐私纪律）。
+
+### 基准时间选 2026-10-09（周五）的理由
+
+周五能把一周的边界全部压进同一天：`周X` 的顺延、`周末`、`本周内`、`下周内`、
+`X个工作日` 跨周末——都能在同一个 `now` 下被检验，不必为每条规则各造一个基准。
+
+`timeParser` 的测试全部以 `new Date(2026, 9, 9, 10, 0, 0)` 为基准。
 
 ## 失败记录规范
 
@@ -91,9 +128,10 @@ Result:
 
 以下必须在对应阶段建立，届时更新本文件：
 
-- [ ] 领域层测试载体（Phase 4）
-- [ ] `timeParser` 测试（Phase 4）
+- [x] 领域层测试载体（Phase 4）
+- [x] `timeParser` 测试（Phase 4）
+- [x] 领域层纯度静态检查（Phase 4）
 - [ ] `taskExtractor` / `sorter` 测试（Phase 5）
-- [ ] 领域层纯度静态检查（Phase 5）
 - [ ] `renderMarkdown` 测试（Phase 7）
+- [ ] UI 主路径人工验证（Phase 6）
 - [ ] 真实数据度量记录（Phase 8）

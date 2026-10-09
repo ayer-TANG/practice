@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>摘务</title>
+</head>
+<body>
+
+<p>摘务 —— 界面在 Phase 6 实现。当前文件只承载领域层（见 D-009）。</p>
+
+<!--
+  领域层（Domain）
+
+  D-009 的结构约束：本块必须内联在 index.html 中。
+  测试用 node:vm 读本文件、提取本块正文求值（见 tests/load-domain.mjs）。
+  拆到独立的 .js 文件会破坏「双击即用」——file:// 下的跨文件加载行为不可靠。
+
+  本层是纯函数：无 DOM、无网络、无存储、不读系统时间。
+  规格来源：docs/construction/SUPPORTED_EXPRESSIONS.md
+-->
+<script id="zhaiwu-domain">
+(function () {
+  'use strict';
+
+  // ==========================================================================
+  // 数字
+  // ==========================================================================
+
+  var CN_DIGIT = {
+    '零': 0, '〇': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
+    '五': 5, '六': 6, '七': 7, '八': 8, '九': 9
+  };
+
+  // 数字 token：阿拉伯数字，或中文数字（覆盖面 0–99，够用于「十一月三日」「十一点」）
+  var NUM = '(?:\\d{1,2}|[一二两三四五六七八九十]+)';
+  // 「点」及可选的后缀：半 / 整 / Y分
+  var TAIL = '\\s*点(?:\\s*(半|整)|\\s*(' + NUM + ')\\s*分)?';
+
+  function cnNum(s) {
+    if (s === null || s === undefined) return null;
+    s = String(s);
+    if (s === '') return null;
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+
+    var i = s.indexOf('十');
+    if (i === -1) {
+      if (s.length !== 1) return null;
+      return Object.prototype.hasOwnProperty.call(CN_DIGIT, s) ? CN_DIGIT[s] : null;
+    }
+    var highPart = s.slice(0, i);
+    var lowPart = s.slice(i + 1);
+    var high = highPart === '' ? 1 : CN_DIGIT[highPart];
+    var low = lowPart === '' ? 0 : CN_DIGIT[lowPart];
+    if (high === undefined || high === null) return null;
+    if (low === undefined || low === null) return null;
+    return high * 10 + low;
+  }
+
+  // ==========================================================================
+  // 日期工具
+  // ==========================================================================
+
+  function dayStart(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  function endOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 0, 0);
+  }
+
+  function plusDays(d, n) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  }
+
+  function atOn(day, h, mi) {
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, mi, 0, 0);
+  }
+
+  // 周一 = 1 … 周日 = 7
+  function isoDow(d) {
+    return ((d.getDay() + 6) % 7) + 1;
+  }
+
+  function mondayOf(d) {
+    return plusDays(dayStart(d), 1 - isoDow(d));
+  }
+
+  // m 为 0-based 月份
+  function daysInMonth(y, m) {
+    return new Date(y, m + 1, 0).getDate();
+  }
+
+  // ==========================================================================
+  // 日期段（§1.A）
+  // kind 语义：
+  //   'absolute' —— 已是完整时间点
+  //   'day'      —— 只到日，默认取当天 23:59，若紧跟时间点则取该时间点
+  // ==========================================================================
+
+  function weekdayDay(now, isoDay, weekOffset) {
+    var d = plusDays(mondayOf(now), isoDay - 1 + weekOffset * 7);
+    // 裸「周X」：该天已过则顺延到下一周
+    if (weekOffset === 0 && d < dayStart(now)) d = plusDays(d, 7);
+    return d;
+  }
+
+  function weekendDay(now) {
+    // §1.A 约定：周末 = 周六
+    var d = plusDays(mondayOf(now), 5);
+    if (d < dayStart(now)) d = plusDays(d, 7);
+    return d;
+  }
+
+  function yearlessMonthDay(now, mo, da) {
+    if (mo === null || da === null) return null;
+    if (mo < 1 || mo > 12) return null;
+    var y = now.getFullYear();
+    if (da < 1 || da > daysInMonth(y, mo - 1)) return null;
+    var d = new Date(y, mo - 1, da);
+    // 该日已过则顺延到下一年
+    if (d < dayStart(now)) {
+      if (da > daysInMonth(y + 1, mo - 1)) return null;
+      d = new Date(y + 1, mo - 1, da);
+    }
+    return d;
+  }
+
+  var WEEKDAY_CHAR = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7, '天': 7 };
+
+  var DATE_PATTERNS = [
+    { re: /大后天/g, kind: 'absolute',
+      make: function (m, now) { return endOfDay(plusDays(dayStart(now), 3)); } },
+    { re: /后天/g, kind: 'absolute',
+      make: function (m, now) { return endOfDay(plusDays(dayStart(now), 2)); } },
+    { re: /明天早上|明早/g, kind: 'absolute',
+      make: function (m, now) { return atOn(plusDays(dayStart(now), 1), 9, 0); } },
+    { re: /明晚/g, kind: 'absolute',
+      make: function (m, now) { return atOn(plusDays(dayStart(now), 1), 20, 0); } },
+    { re: /今晚/g, kind: 'absolute',
+      make: function (m, now) { return atOn(dayStart(now), 20, 0); } },
+    { re: /明天|明日/g, kind: 'day',
+      make: function (m, now) { return plusDays(dayStart(now), 1); } },
+    { re: /今天|今日/g, kind: 'day',
+      make: function (m, now) { return dayStart(now); } },
+
+    // YYYY年X月X日 / X月X日
+    { re: new RegExp('(\\d{4})\\s*年\\s*(' + NUM + ')\\s*月\\s*(' + NUM + ')\\s*[日号]', 'g'),
+      kind: 'day',
+      make: function (m) {
+        var y = parseInt(m[1], 10), mo = cnNum(m[2]), da = cnNum(m[3]);
+        if (mo === null || da === null) return null;
+        if (mo < 1 || mo > 12) return null;
+        if (da < 1 || da > daysInMonth(y, mo - 1)) return null;
+        return new Date(y, mo - 1, da);
+      } },
+    { re: new RegExp('(' + NUM + ')\\s*月\\s*(' + NUM + ')\\s*[日号]', 'g'),
+      kind: 'day',
+      make: function (m, now) { return yearlessMonthDay(now, cnNum(m[1]), cnNum(m[2])); } },
+
+    // X/X 与 X-Y（有歧义，v1 接受此代价，见 §1.A 备注）
+    { re: /(?<!\d)(\d{1,2})\s*[/／]\s*(\d{1,2})(?!\d)/g,
+      kind: 'day',
+      make: function (m, now) { return yearlessMonthDay(now, cnNum(m[1]), cnNum(m[2])); } },
+    { re: /(?<!\d)(\d{1,2})\s*-\s*(\d{1,2})(?![\d个天日月号点时年周])/g,
+      kind: 'day',
+      make: function (m, now) { return yearlessMonthDay(now, cnNum(m[1]), cnNum(m[2])); } },
+
+    // 星期
+    { re: /(?:周|星期|礼拜)([一二三四五六日天])/g, kind: 'day',
+      make: function (m, now) { return weekdayDay(now, WEEKDAY_CHAR[m[1]], 0); } },
+    { re: /(?:这周|本周)([一二三四五六日天])/g, kind: 'day',
+      make: function (m, now) { return weekdayDay(now, WEEKDAY_CHAR[m[1]], 0); } },
+    { re: /(?:下周|下星期|下礼拜)([一二三四五六日天])/g, kind: 'day',
+      make: function (m, now) { return weekdayDay(now, WEEKDAY_CHAR[m[1]], 1); } },
+    { re: /这周末|周末/g, kind: 'day',
+      make: function (m, now) { return weekendDay(now); } }
+  ];
+
+  // ==========================================================================
+  // 时间点段（§1.B）
+  // kind: 'time'，值为 { h, m, infer12 }
+  //   infer12 = true 表示「裸 X点」——没有时段词，需要按 12/24 小时推断
+  // ==========================================================================
+
+  function readHourMin(m) {
+    var h = cnNum(m[1]);
+    if (h === null) return null;
+    var mi = 0;
+    if (m[2] === '半') {
+      mi = 30;
+    } else if (m[3] !== undefined && m[3] !== null && m[3] !== '') {
+      var t = cnNum(m[3]);
+      if (t === null || t > 59) return null;
+      mi = t;
+    }
+    return { h: h, m: mi };
+  }
+
+  function timePattern(re, infer12, shiftPm) {
+    return {
+      re: re,
+      kind: 'time',
+      make: function (m) {
+        var p = readHourMin(m);
+        if (p === null) return null;
+        var h = p.h;
+        if (shiftPm && h < 12) h = h + 12;
+        return { h: h, m: p.m, infer12: infer12 };
+      }
+    };
+  }
+
+  var TIME_PATTERNS = [
+    // 带时段词 —— 12/24 小时制已由时段词确定
+    timePattern(new RegExp('(?:上午|早上|早晨)\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
+    timePattern(new RegExp('中午\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
+    timePattern(new RegExp('(?:下午|晚上)\\s*(' + NUM + ')' + TAIL, 'g'), false, true),
+    timePattern(new RegExp('凌晨\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
+
+    // X:XX（半角或全角冒号）
+    { re: /(\d{1,2})\s*[:：]\s*(\d{1,2})/g, kind: 'time',
+      make: function (m) {
+        var h = parseInt(m[1], 10), mi = parseInt(m[2], 10);
+        if (h > 23 || mi > 59) return null;
+        return { h: h, m: mi, infer12: false };
+      } },
+
+    // 单用「中午」—— §1.B 明确支持（与单用「下午/晚上/上午」不同）
+    { re: /中午/g, kind: 'time',
+      make: function () { return { h: 13, m: 0, infer12: false }; } },
+
+    // 裸 X点 —— 需要 12/24 小时推断
+    timePattern(new RegExp('(' + NUM + ')' + TAIL, 'g'), true, false)
+  ];
+
+  // ==========================================================================
+  // 相对期限（§1.D）与紧迫词（§1.E）
+  // ==========================================================================
+
+  function thisWeekEnd(now) { return endOfDay(plusDays(mondayOf(now), 6)); }
+  function nextWeekEnd(now) { return endOfDay(plusDays(mondayOf(now), 13)); }
+  function thisMonthEnd(now) { return endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0)); }
+
+  function workdaysEnd(n, now) {
+    if (n === null || n < 1 || n > 60) return null;
+    var d = dayStart(now), count = 0;
+    while (count < n) {
+      d = plusDays(d, 1);
+      var w = d.getDay();
+      if (w !== 0 && w !== 6) count++;
+    }
+    return endOfDay(d);
+  }
+
+  function daysFromNow(m, now, mult) {
+    var n = cnNum(m[1]);
+    if (n === null || n < 0 || n > 365) return null;
+    return endOfDay(plusDays(dayStart(now), n * mult));
+  }
+
+  var REL_PATTERNS = [
+    { re: new RegExp('(' + NUM + ')\\s*(?:天|日)(?:内|后)', 'g'), kind: 'absolute',
+      make: function (m, now) { return daysFromNow(m, now, 1); } },
+    { re: new RegExp('(' + NUM + ')\\s*周(?:内|后)', 'g'), kind: 'absolute',
+      make: function (m, now) { return daysFromNow(m, now, 7); } },
+    { re: new RegExp('(' + NUM + ')\\s*个?星期(?:内|后)', 'g'), kind: 'absolute',
+      make: function (m, now) { return daysFromNow(m, now, 7); } },
+    { re: /(?:这周|本周)内/g, kind: 'absolute',
+      make: function (m, now) { return thisWeekEnd(now); } },
+    { re: /下周内/g, kind: 'absolute',
+      make: function (m, now) { return nextWeekEnd(now); } },
+    { re: /(?:这个月|本月)内/g, kind: 'absolute',
+      make: function (m, now) { return thisMonthEnd(now); } },
+    { re: new RegExp('(' + NUM + ')\\s*个工作日(?:内)?', 'g'), kind: 'absolute',
+      make: function (m, now) { return workdaysEnd(cnNum(m[1]), now); } }
+  ];
+
+  // §1.E 紧迫词 —— 约定映射为 today 23:59，并标记 fuzzy
+  var URGENCY_RE = /第一时间|马上就好|尽快|马上|抓紧|赶紧|立刻/g;
+
+  // ==========================================================================
+  // §2 明确不支持 —— 匹配到的区域先屏蔽，再解析
+  // 这样「上周三」这类含受支持片段的表达不会被误解析成「周三」。
+  // ==========================================================================
+
+  var REJECT_PATTERNS = [
+    // 双重相对星期
+    /下下(?:个)?(?:周|星期|礼拜)[一二三四五六日天]?/g,
+    // 模糊区间
+    /下个?月/g,
+    /(?:月[中底末]|中旬|上旬|下旬|季度[末底])/g,
+    // 迟滞词（本质是「时间未定」，不是「时间未知」）
+    /过几天|改天|有空时|有空|找时间|回头|这阵子|最近/g,
+    // 过去的表达（作为截止时间无意义）
+    /昨天|前天|昨日|前日/g,
+    /上(?:周|星期|礼拜)[一二三四五六日天]?/g,
+    /上次/g,
+    // 农历与传统节日
+    /农历/g,
+    /(?:春节|国庆|中秋)(?:节)?(?:前|后)?/g,
+    // 月份时长（月末对齐规则复杂）
+    new RegExp('(' + NUM + ')\\s*个\\s*月', 'g'),
+    // 精确到秒
+    new RegExp(NUM + '\\s*点\\s*' + NUM + '\\s*分\\s*' + NUM + '\\s*秒', 'g')
+  ];
+
+  function maskRejects(text) {
+    var chars = text.split('');
+    var ranges = [];
+    for (var k = 0; k < REJECT_PATTERNS.length; k++) {
+      var re = REJECT_PATTERNS[k];
+      re.lastIndex = 0;
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        var b = m.index, e = m.index + m[0].length;
+        ranges.push([b, e]);
+        for (var i = b; i < e; i++) chars[i] = ' ';
+        if (m[0] === '') re.lastIndex++;
+      }
+    }
+    return { text: chars.join(''), ranges: ranges };
+  }
+
+  // ==========================================================================
+  // 解析主流程
+  // ==========================================================================
+
+  function collectCandidates(text, now) {
+    var out = [];
+    var lists = [DATE_PATTERNS, REL_PATTERNS, TIME_PATTERNS];
+
+    for (var li = 0; li < lists.length; li++) {
+      var list = lists[li];
+      for (var pi = 0; pi < list.length; pi++) {
+        var p = list[pi];
+        p.re.lastIndex = 0;
+        var m;
+        while ((m = p.re.exec(text)) !== null) {
+          var v = p.make(m, now);
+          if (v !== null) {
+            out.push({ index: m.index, length: m[0].length, kind: p.kind, value: v });
+          }
+          if (m[0] === '') p.re.lastIndex++;
+        }
+      }
+    }
+
+    URGENCY_RE.lastIndex = 0;
+    var um;
+    while ((um = URGENCY_RE.exec(text)) !== null) {
+      out.push({ index: um.index, length: um[0].length, kind: 'urgency', value: null });
+      if (um[0] === '') URGENCY_RE.lastIndex++;
+    }
+
+    return out;
+  }
+
+  // §0：一句话多个时间表达，取最靠左的第一个；同位置取最长的
+  function pickLeftmost(list) {
+    if (list.length === 0) return null;
+    var best = list[0];
+    for (var i = 1; i < list.length; i++) {
+      var c = list[i];
+      if (c.index < best.index || (c.index === best.index && c.length > best.length)) best = c;
+    }
+    return best;
+  }
+
+  var TIME_TAIL_SKIP = /[\s，,、]/;
+
+  // 在 pos 处（允许跳过少量分隔符）找一个时间点，用于「日期 + 时间点」组合
+  function timePointAt(text, pos) {
+    var i = pos;
+    while (i < text.length && TIME_TAIL_SKIP.test(text[i])) i++;
+    if (i >= text.length) return null;
+    for (var k = 0; k < TIME_PATTERNS.length; k++) {
+      var p = TIME_PATTERNS[k];
+      p.re.lastIndex = i;
+      var m = p.re.exec(text);
+      if (m !== null && m.index === i) return p.make(m);
+    }
+    return null;
+  }
+
+  // 时间点已过去、且未指定日期 → 次日（§0）
+  function resolveTimeOnly(tp, now) {
+    var base = dayStart(now);
+    var next = plusDays(base, 1);
+
+    if (tp.infer12) {
+      // 裸 X点：候选顺序为今日 X:00 → 今日 (X+12):00 → 次日 X:00，取第一个晚于 now 的
+      var cands = [atOn(base, tp.h, tp.m)];
+      if (tp.h + 12 < 24) cands.push(atOn(base, tp.h + 12, tp.m));
+      cands.push(atOn(next, tp.h, tp.m));
+      for (var i = 0; i < cands.length; i++) {
+        if (cands[i].getTime() > now.getTime()) return cands[i];
+      }
+      return cands[cands.length - 1];
+    }
+
+    var d = atOn(base, tp.h, tp.m);
+    if (d.getTime() <= now.getTime()) d = atOn(next, tp.h, tp.m);
+    return d;
+  }
+
+  /**
+   * 解析一段文本里的截止时间。
+   *
+   * @param {string} text 待解析文本（一行聊天原文）
+   * @param {Date}   now  基准时间，由调用方注入 —— 本层绝不自己读系统时间
+   * @returns {{ date: Date|null, fuzzy: boolean }}
+   */
+  function timeParserDetail(text, now) {
+    if (!now || typeof now.getTime !== 'function' || isNaN(now.getTime())) {
+      throw new TypeError('timeParser 需要注入有效的 now（Date）');
+    }
+    if (typeof text !== 'string' || text === '') return { date: null, fuzzy: false };
+
+    var masked = maskRejects(text);
+    var best = pickLeftmost(collectCandidates(masked.text, now));
+    if (best === null) return { date: null, fuzzy: false };
+
+    // 若候选紧贴在被屏蔽区域之后，说明它是被否决表达的一部分（如「下下周三下午三点」）
+    for (var i = 0; i < masked.ranges.length; i++) {
+      if (masked.ranges[i][1] === best.index) return { date: null, fuzzy: false };
+    }
+
+    if (best.kind === 'urgency') {
+      return { date: endOfDay(dayStart(now)), fuzzy: true };
+    }
+    if (best.kind === 'absolute') {
+      return { date: best.value, fuzzy: false };
+    }
+    if (best.kind === 'day') {
+      var tp = timePointAt(masked.text, best.index + best.length);
+      return { date: tp ? atOn(best.value, tp.h, tp.m) : endOfDay(best.value), fuzzy: false };
+    }
+    return { date: resolveTimeOnly(best.value, now), fuzzy: false };
+  }
+
+  /**
+   * 对外契约：把文本里的时间表达转成绝对时间。
+   *
+   * @param {string} text
+   * @param {Date}   now
+   * @returns {Date|null}
+   */
+  function timeParser(text, now) {
+    return timeParserDetail(text, now).date;
+  }
+
+  globalThis.__zhaiwuDomain = {
+    version: 'Phase 4',
+    timeParser: timeParser,
+    timeParserDetail: timeParserDetail
+  };
+})();
+</script>
+
+</body>
+</html>

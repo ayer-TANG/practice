@@ -147,13 +147,19 @@ Phase 2 的 backup 分支
 
 ---
 
-## Phase 4: 领域层 — timeParser ⬜
+## Phase 4: 领域层 — timeParser ✅
+
+> 产出：`index.html` 骨架（含 `<script id="zhaiwu-domain">` 块）、
+> `tests/load-domain.mjs`（VM 提取引导，D-009）、`tests/time-parser.test.mjs`。
+> `node --test` → **130 passed / 0 failed**。
+> 未实现 `taskExtractor` / `sorter` / `parse`。
 
 ### Goal
-实现时间表达解析，这是整个产品里最难、最值得先做的一块。
+实现时间表达解析，这是整个产品里最难、也最值得先做的一块。
 
 ### Included
 - `timeParser(text, now) => Date | null`
+- `timeParserDetail(text, now) => { date, fuzzy }`（承载 D-010 的 `fuzzy`，见 D-011）
 - 时间词表数据化（不是一堆 if）
 - 覆盖支持清单中全部时间表达
 - 领域层测试载体建立（`node --test`）
@@ -172,7 +178,10 @@ Phase 3（支持表达清单 + OD-001）
 - 测试文件，覆盖清单全部条目 + 边界（跨月、跨年、今天已过的时间点）
 
 ### Tests
-`node --test tests/` —— 全部时间表达用例通过
+`node --test` —— 全部时间表达用例通过
+
+> 注意命令写法。`node --test tests/` 在 Node 24 下报 `MODULE_NOT_FOUND`（位置参数
+> 被当作模块入口），Phase 1–3 文档里的目录形式已在 Phase 4 全部改正。见 `TEST_METRICS.md`。
 
 ### Acceptance Criteria
 清单中每一条时间表达都有对应测试且通过；成功标准 2（≥80%）的度量方式已可执行。
@@ -202,7 +211,7 @@ Phase 2 的 backup 分支
 Phase 4
 
 ### Tests
-`node --test tests/` —— 含正向与反向用例
+`node --test` —— 含正向与反向用例
 
 ### Acceptance Criteria
 领域层全部测试通过；领域层无 DOM 引用（可静态检查）；A-001 可用真实数据开始验证。

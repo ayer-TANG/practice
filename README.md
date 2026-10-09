@@ -21,7 +21,13 @@
 
 ## 状态
 
-施工中，尚无应用代码。当前阶段与下一步见 `docs/construction/HANDOFF.md`。
+**施工中，产品还不能用。**
+
+领域层的时间解析（`timeParser`）已完成并有测试覆盖（`node --test` → 130 passed），
+但任务识别与排序、界面、复制下载都还没做。`index.html` 已经存在，但里面只有领域层代码
+和一行占位文字。
+
+当前阶段与下一步见 `docs/construction/HANDOFF.md`。
 
 ## 文档
 

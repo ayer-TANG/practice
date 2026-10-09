@@ -17,7 +17,9 @@
 
 ## 当前状态（一句话）
 
-施工文档已建立，**尚无应用代码**。`index.html` 还不存在。
+**Phase 4 完成。** 领域层 `timeParser` 已实现，`node --test` → 130 passed。
+`index.html` 已存在，但**只是骨架**——界面代码一行都没有，产品现在还不能用。
+`taskExtractor` / `sorter` / `parse` 待 Phase 5。
 
 ## 必读顺序
 

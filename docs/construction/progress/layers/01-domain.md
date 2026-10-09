@@ -4,9 +4,8 @@
 
 ## 状态
 
-**实现不存在**，但**规格已于 Phase 3 冻结**。
-
-计划在 Phase 4（`timeParser`）与 Phase 5（`taskExtractor` + `sorter`）实现。
+**部分实现。** `timeParser` 已于 Phase 4 完成并有测试覆盖（130 passed）。
+`taskExtractor`、`sorter`、`parse` 组装尚未实现，计划在 Phase 5。
 
 > **实现前必读** `docs/construction/SUPPORTED_EXPRESSIONS.md`。
 > 它是本层的规格来源：支持哪些表达、约定映射到什么时刻、组合上限是什么、
@@ -49,13 +48,44 @@ Task {
 
 | 项 | 状态 |
 |---|---|
-| `Task` 类型 | 不存在 |
-| `timeParser` | 不存在 |
-| `taskExtractor` | 不存在 |
-| `sorter` | 不存在 |
-| `parse` 组装 | 不存在 |
-| 时间词表 / 动作词表 | 不存在 |
-| 测试 | **Not established** |
+| `Task` 类型 | 不存在（Phase 5） |
+| `timeParser` | **已完成**（Phase 4），`node --test` 覆盖 §1 全部 69 条 + §2 全部 28 条 |
+| `timeParserDetail` | **已完成**（Phase 4）—— 承载 `fuzzy`，见 D-011 |
+| `taskExtractor` | 不存在（Phase 5） |
+| `sorter` | 不存在（Phase 5） |
+| `parse` 组装 | 不存在（Phase 5） |
+| 时间词表 | **已建立**（数据化的 `DATE_PATTERNS` / `TIME_PATTERNS` / `REL_PATTERNS` / `REJECT_PATTERNS`） |
+| 动作词表 | 不存在（Phase 5） |
+| 测试 | `node --test` → **130 passed / 0 failed** |
+
+### Phase 4 实现落点
+
+全部代码在 `index.html` 的 `<script id="zhaiwu-domain">` 块内（D-009），
+末尾挂载 `globalThis.__zhaiwuDomain = { version, timeParser, timeParserDetail }`。
+
+规则是**数据化**的——四张模式表 + 通用解析函数，不是散落的 if：
+
+| 表 | 对应规格 | 说明 |
+|---|---|---|
+| `DATE_PATTERNS` | §1.A | 绝对日期与星期；产出「完整时间」或「只到日」 |
+| `TIME_PATTERNS` | §1.B | 时间点；带时段词的直接定 12/24，裸 `X点` 标 `infer12` |
+| `REL_PATTERNS` | §1.D | 相对期限 |
+| `REJECT_PATTERNS` | **§2** | 先屏蔽再解析——见下 |
+
+Phase 5 只需追加 `ACTION_PATTERNS` 并补上 `parse` 与 `sorter`，不必改动这四张表。
+
+### §2 的实现方式：先屏蔽，再解析
+
+§2 是不支持清单，但其中若干条**含有受支持的片段**——
+「上周三」包含「周三」，「下下周三」包含「周三」，「3点5分8秒」包含「3点5分」。
+若直接按 §1 的模式扫描，它们会被误解析成时间，违反「§2 必须返回 null」。
+
+做法：先用 `REJECT_PATTERNS` 把命中区域**替换为空格**，再在屏蔽后的文本上扫描。
+另有一条**紧邻规则**：若选定候选正好紧贴在被屏蔽区域之后，说明它是被否决表达的一部分
+（如「下下周三**下午三点**」），整体返回 `null`。
+
+这条规则是 Phase 4 实现时发现的、`SUPPORTED_EXPRESSIONS.md` 未写明的推论，
+已补记到该文档 §3。
 
 ## 硬约束
 
@@ -71,11 +101,12 @@ Task {
 
 ## 测试
 
-载体：`node --test tests/`（Node 内置，零依赖）。
+载体：`node --test`（Node 内置，零依赖）。
+**注意不是 `node --test tests/`** —— 那种写法在 Node 24 下报 `MODULE_NOT_FOUND`，见 `TEST_METRICS.md`。
 
 必须覆盖：
 
-- `timeParser`：支持表达清单全部条目 + 边界（跨月、跨年、今天已过的时间点、闰年）
+- `timeParser`：支持表达清单全部条目 + 边界（跨月、跨年、今天已过的时间点、闰年）—— **Phase 4 已完成**
 - `taskExtractor`：正向用例 + **反向用例**（「收到」「哈哈哈」「辛苦了」不得命中）
 - `sorter`：排序正确性 + 无截止时间的分组与位置
 

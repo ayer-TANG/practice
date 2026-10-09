@@ -28,7 +28,7 @@
 ## Deployment Shape
 
 ```
-交付物: 1 个可双击打开的 HTML 文件（加其附带文件集，见 OD-001）
+交付物: 1 个可双击打开的 HTML 文件（严格单文件，见 D-009）
 运行时: 浏览器 file:// 协议
 后端:   无
 网络:   无
@@ -41,15 +41,28 @@
 | 层 | 职责 | 允许依赖 | 禁止依赖 | 现状 |
 |---|---|---|---|---|
 | UI 层 | 粘贴区、抽取按钮、结果列表、补漏输入框、删除、复制/下载按钮的渲染与事件 | 领域层、交付层 | 解析规则（正则不得写在 UI 层） | 不存在 |
-| 领域层（核心） | `Task` 类型；`taskExtractor` 任务句识别；`timeParser` 时间解析；`sorter` 排序与分组 | 仅 JS 内置能力 | **DOM、网络、localStorage** | 不存在 |
+| 领域层（核心） | `Task` 类型；`taskExtractor` 任务句识别；`timeParser` 时间解析；`sorter` 排序与分组 | 仅 JS 内置能力 | **DOM、网络、localStorage** | **部分完成**——`timeParser` 已实现；其余待 Phase 5 |
 | 交付层 | 把 `Task[]` 渲染成 Markdown；复制到剪贴板；下载 `.md` | 领域层的 `Task` 类型 | 被领域层反向依赖 | 不存在 |
 | 数据层 | —— | —— | —— | **N/A**（本版无持久化） |
 | 认证层 | —— | —— | —— | **N/A**（单用户无账号） |
 | 存储层 | —— | —— | —— | **N/A**（无文件/对象存储需求） |
 | 集成层 | —— | —— | —— | **N/A**（无网络请求、不接第三方） |
-| 测试边界 | 覆盖领域层三个模块的纯函数测试 | 领域层 | DOM | **Not established** |
+| 测试边界 | 领域层纯函数测试 | 领域层 | DOM | `node --test` → 130 passed（仅覆盖 `timeParser`） |
 
-六个 N/A 层不是遗漏。按施工纪律，在需要之前不引入数据库、队列、搜索、对象存储或认证服务。
+四个 N/A 层不是遗漏。按施工纪律，在需要之前不引入数据库、队列、搜索、对象存储或认证服务。
+
+### 仓库目录结构
+
+```
+index.html                         交付物。领域层内联在 <script id="zhaiwu-domain"> 内（D-009）
+tests/load-domain.mjs              测试引导：提取 index.html 里的领域层并求值（不随产品发布）
+tests/time-parser.test.mjs         timeParser 的用例
+docs/product/                      产品真值
+docs/construction/                 施工文档
+docs/construction/progress/layers/ 分层进度
+```
+
+`tests/` 的存在不改变「交付物是单文件」这一事实——测试代码不参与交付。
 
 ## Data Flow
 
@@ -116,8 +129,11 @@ Task {
 
 - 领域层是纯函数，**可在 Node 中直接测试，无需浏览器**。
 - 测试载体：Node 内置 `node:test` + `node:assert`（零依赖，符合零依赖原则）。
+- 运行命令：**`node --test`**（不是 `node --test tests/`——后者在 Node 24 下报
+  `MODULE_NOT_FOUND`，见 `TEST_METRICS.md`）。
+- 领域层代码内联在 `index.html` 中，测试用 `node:vm` 提取该块求值（D-009）。
 - 必须覆盖：
-  - `timeParser`：全部支持的时间表达（清单由 Phase 3 产出）
+  - `timeParser`：全部支持的时间表达（清单由 Phase 3 产出）—— **Phase 4 已完成**
   - `taskExtractor`：命中用例 + **不命中用例**（「收到」「哈哈哈」不得被判为任务）
   - `sorter`：排序正确性 + 无截止时间的分组与位置
 - UI 层与交付层：本版不做自动化测试，人工验证。这一点必须诚实记录在 `TEST_METRICS.md`。

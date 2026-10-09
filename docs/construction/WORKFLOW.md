@@ -79,9 +79,12 @@ git checkout main
 ## 5. 阶段收工
 
 ```bash
-node --test tests/      # 领域层测试（建立后）
+node --test          # 领域层测试（Phase 4 起可用）
 git diff --check
 ```
+
+> `node --test tests/` **不成立**——Node 24 下位置参数被当作模块入口，报 `MODULE_NOT_FOUND`。
+> 用零参数的 `node --test`。见 `TEST_METRICS.md`。
 
 然后按顺序：
 

@@ -2,26 +2,32 @@
 
 ## 状态
 
-测试：**Not established**
+测试：**已建立，130 passed / 0 failed**（Phase 4）
 部署：**未开始**
 
 ## 测试
 
 ### 当前基线
 
-`Not established`。仓库中不存在测试文件、测试脚本或运行配置。
+`node --test` → **130 passed / 0 failed**。
 
-**这不是"测试通过"。** 详见 `TEST_METRICS.md`。
+已建立的部分只覆盖领域层 `timeParser`。UI 层、交付层、真实数据度量仍未建立。
+详见 `TEST_METRICS.md`。
 
-### 计划
+> **命令写法**：`node --test tests/` **不成立**（Node 24 下位置参数被当作模块入口）。
+> 用零参数的 `node --test`。Phase 1–3 文档里写的目录形式已在 Phase 4 全部改正。
+
+### 载体
 
 | 载体 | 说明 |
 |---|---|
-| `node --test tests/` | Node 内置测试运行器，零依赖 |
+| `node --test` | Node 内置测试运行器，零依赖。见上方关于命令写法的说明 |
 | `node:assert` | Node 内置断言库 |
+| `tests/load-domain.mjs` | 测试引导：从 `index.html` 提取领域层（D-009） |
 | `git diff --check` | 每轮必跑，检查空白字符错误 |
 
 不引入 Jest / Vitest / Mocha / Playwright——违反零依赖原则。
+不引入 `package.json`：`node --test` 零配置可用，加了反而多一个要维护的文件。
 
 ### 永久保持 Not established 的项
 
@@ -31,18 +37,22 @@
 
 ### 覆盖分工
 
-| 层 | 测试方式 |
-|---|---|
-| 领域层 | 自动化单元测试（纯函数，Node 直接跑） |
-| 交付层 `renderMarkdown` | 自动化单元测试（纯函数） |
-| UI 层 | **人工验证**，如实记录为"人工验证"而非"通过" |
-| 复制 / 下载 | 人工验证 |
+| 层 | 测试方式 | 现状 |
+|---|---|---|
+| 领域层 | 自动化单元测试（纯函数，Node 直接跑） | `timeParser` 已覆盖；`taskExtractor`/`sorter` 待 Phase 5 |
+| 交付层 `renderMarkdown` | 自动化单元测试（纯函数） | 待 Phase 7 |
+| UI 层 | **人工验证**，如实记录为"人工验证"而非"通过" | 待 Phase 6 |
+| 复制 / 下载 | 人工验证 | 待 Phase 7 |
 
 ### 关键约束
 
 - 时间解析测试必须显式注入 `now`，不得依赖真实当前时间
 - 必须包含反向用例（「收到」不得被判为任务）
 - 样例自行编造，**禁止真实聊天记录**
+- **跨 realm 陷阱**：领域层跑在 `node:vm` 里，它抛出的 `TypeError` 与测试文件的
+  `TypeError` 不是同一个构造器。因此 `assert.throws(fn, TypeError)` 会失败
+  （`instanceof` 跨 realm 不成立），改用匹配错误信息。领域层也**不得**用
+  `x instanceof Date` 判断入参——同样跨 realm 不成立，用鸭子类型。
 
 ## 部署
 

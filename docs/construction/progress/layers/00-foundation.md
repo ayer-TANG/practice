@@ -27,6 +27,9 @@
 - **远端回滚点**：`backup/pre-phase2-repo-setup-20261009-1745` → `9d693c1`（Phase 3–9 全程）
 - `.gitignore` 忽略 `idea-to-production-vibecoding-main/`；`.gitattributes` 统一换行符为 LF
 - **能力边界规格**：`SUPPORTED_EXPRESSIONS.md`（支持/不支持清单、组合上限、误检风险、验收方式）
+- **测试载体与命令**（Phase 4）：`tests/` 目录出现，运行命令为 `node --test`
+  （**不是** `node --test tests/`——Node 24 下位置参数被当作模块入口，报 `MODULE_NOT_FOUND`；
+  Phase 1–3 文档写错的地方已全部改正，详见 `TEST_METRICS.md`）
 
 ## 未完成
 

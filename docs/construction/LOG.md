@@ -524,3 +524,180 @@ Result: Passed —— 支持 69 条、不支持 28 条、**交集 0**。
    今天已过的时间点、闰年）
 2. 用户完成仓库改名（R-1），随时可插入执行 R-2/R-3
 3. Phase 5：`taskExtractor` + `sorter`
+
+---
+## 2026-10-09 18:45 / Phase 4 / Work Log
+
+### Plan Replay
+
+本轮 start plan（追加于 `DEV_PROGRESS.md`）要求：实现 `timeParser`，建立 `node --test`
+测试载体，覆盖支持清单 §1 全部 69 条 + §2 全部 28 条 + 边界。
+
+**执行顺序按要求先建测试载体与骨架，再写解析器。** 这一条守住了：
+`load-domain.mjs` 与 `index.html` 骨架先落盘，`timeParser` 随后填入。
+
+### Actual Changes
+
+**新建 `index.html`** —— 交付物。严格单文件，无任何 `<script src>` / `<link>` / 外部 URL。
+领域层内联在 `<script id="zhaiwu-domain">` 块内，末尾挂载
+`globalThis.__zhaiwuDomain = { version, timeParser, timeParserDetail }`（D-009）。
+界面为空壳，只有一行说明文字。
+
+**新建 `tests/load-domain.mjs`** —— D-009 的落地。读 `index.html` → 正则提取
+`<script id="zhaiwu-domain">` 正文 → `vm.runInContext` 求值 → 取 `__zhaiwuDomain`。
+同时导出 `source`（领域层源码原文），供纯度静态检查使用。
+
+**新建 `tests/time-parser.test.mjs`** —— 130 个用例。
+
+**领域层规则全部数据化**，四张模式表 + 通用解析函数，没有散落的 if：
+
+| 表 | 规格 | 数量 |
+|---|---|---|
+| `DATE_PATTERNS` | §1.A 绝对日期 | 16 条模式 |
+| `TIME_PATTERNS` | §1.B 时间点 | 7 条模式 |
+| `REL_PATTERNS` | §1.D 相对期限 | 7 条模式 |
+| `REJECT_PATTERNS` | **§2 不支持** | 11 条模式 |
+
+§1.C 的期限后缀不需要模式——它们不改变解析结果，测试直接断言
+`周五之前` 与 `周五` 相等。
+
+### Files Changed
+
+| 文件 | 动作 |
+|---|---|
+| `index.html` | 新建 |
+| `tests/load-domain.mjs` | 新建 |
+| `tests/time-parser.test.mjs` | 新建 |
+| `docs/construction/TEST_METRICS.md` | 重写（基线从 Not established 变为 130 passed） |
+| `docs/construction/ARCHITECTURE.md` | 目录结构、层次现状、测试策略、Deployment Shape |
+| `docs/construction/SUPPORTED_EXPRESSIONS.md` | §0 补两条约定；§2、§3 补实现要点 |
+| `docs/construction/CONSTRUCTION_PLAN.md` | Phase 4 转完成；测试命令改正 |
+| `docs/construction/WORKFLOW.md` | 收工命令改正 |
+| `docs/construction/progress/layers/01-domain.md` | 状态、实现落点、§2 实现方式 |
+| `docs/construction/progress/layers/04-testing-deployment.md` | 基线、载体、跨 realm 陷阱 |
+| `docs/product/PRODUCT_REQUIREMENTS.md` | D-011、D-012、假设 A-006 |
+| `docs/construction/DEV_PROGRESS.md` | 完成记录 |
+| `AGENTS.md` | Current Phase |
+| `docs/construction/LOG.md` | 本文件 |
+
+**未纳入版本控制的改动：** 无。
+
+### Test Log
+
+```
+$ node --test
+ℹ tests 130
+ℹ suites 15
+ℹ pass 130
+ℹ fail 0
+```
+
+### Failures
+
+**失败 1 —— 测试命令不成立（首次即失败）**
+
+```
+$ node --test tests/
+Error: Cannot find module 'D:\xuexi\war\tests'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+```
+
+Phase 1–3 的全部文档都写着 `node --test tests/`（见 `CONSTRUCTION_PLAN.md`、
+`WORKFLOW.md` §5、`TEST_METRICS.md`、`progress/layers/01-domain.md`、
+`progress/layers/04-testing-deployment.md`）。
+
+**原因：** Node 24 不再对传给 `--test` 的目录做递归发现；位置参数被当作**模块入口**，
+于是 `tests/` 被拿去 `require`，报 `MODULE_NOT_FOUND`。
+
+**Fix：** 改用零参数的 `node --test`。实测三种写法均通过：
+
+| 命令 | 结果 |
+|---|---|
+| `node --test` | 130 passed |
+| `node --test "tests/**/*.test.mjs"` | 130 passed |
+| `node --test tests/*.test.mjs` | 130 passed |
+
+选零参数形式：不依赖 shell 的 glob 展开，在 cmd / PowerShell / bash 下行为一致。
+并确认 `tests/load-domain.mjs` 不匹配测试文件命名模式，实测未被采集（否则它会被当测试跑）。
+
+**Test Attempt 1**
+Command: `node --test tests/time-parser.test.mjs`
+Result: **Failed**（130 中 128 passed / 2 failed）
+
+```
+✖ 空文本与非字符串 → null
+✖ 未注入 now 时抛错，而不是悄悄用系统时间
+```
+
+**失败 2 —— 用例写错了（实现是对的）**
+
+`assert.equal(parse('今天天气不错'), null)` 失败：`今天` 是 §1.A 的受支持表达，
+`timeParser` 返回 `2026-10-09 23:59`。
+
+**这是我的用例写错，不是实现有问题。** `timeParser` 只负责解析时间；
+判断「今天天气不错」是不是任务，是 `taskExtractor` 的职责（Phase 5）。
+时间解析正确地把 `今天` 认了出来。
+
+**Fix：** 换成真正不含时间表达的文本（`辛苦了`、`这个方案我看过了`）。
+
+**失败 3 —— 跨 realm 的 `instanceof` 失效**
+
+`assert.throws(() => timeParser('明天'), TypeError)` 失败。
+实现确实抛了 `TypeError`，但那是 **vm realm 的** `TypeError`，
+与测试文件的 `TypeError` 不是同一个构造器，`instanceof` 跨 realm 不成立。
+
+**Fix：** 改为匹配错误信息 `/需要注入有效的 now/`。
+同时在 `progress/layers/04-testing-deployment.md` 记下这条陷阱——
+领域层内部也**不得**用 `x instanceof Date` 判断入参（同样是跨 realm 问题），
+已改用鸭子类型 `typeof now.getTime === 'function'`。
+
+**Retests**
+Command: `node --test`
+Result: **130 passed / 0 failed**
+
+### Documentation Drift
+
+| # | 漂移 | 处理 |
+|---|---|---|
+| 1 | **`node --test tests/` 在 Node 24 下不成立**（5 处文档） | 全部改为 `node --test`，并在 `TEST_METRICS.md` 写明原因与实测结果 |
+| 2 | `ARCHITECTURE.md` 写「六个 N/A 层」，实际只有 4 个（数据层/认证层/存储层/集成层） | 改为「四个」 |
+| 3 | `ARCHITECTURE.md` 的 Deployment Shape 写「加其附带文件集，见 OD-001」 | OD-001 已闭为 D-009 且结论是**严格单文件**，改为「严格单文件，见 D-009」 |
+| 4 | 目录结构出现 `tests/`，架构文档未记 | 在 `ARCHITECTURE.md` 新增「仓库目录结构」节 |
+| 5 | 领域层状态从「不存在」变为「部分完成」 | 更新 `01-domain.md`、`ARCHITECTURE.md` 层次表 |
+| 6 | `SUPPORTED_EXPRESSIONS.md` §0 说「按上下文推断 12/24 小时制」但未定义规则，无法写成测试 | 补定规则并记为新决策 **D-012**；由此产生的风险记为新假设 **A-006** |
+| 7 | `SUPPORTED_EXPRESSIONS.md` §2 未说明「有些条目含受支持片段」 | 在 §2 补记「先屏蔽再解析」的做法；在 §3 补记紧邻规则 |
+
+**未漂移的部分（刻意检查过）：**
+- 领域层无 `document` / `window` / `fetch` / `localStorage` / `import` / `require` —— 有静态测试把关
+- 领域层无 `new Date()` 无参调用、无 `Date.now()` —— 有静态测试把关
+- `index.html` 无任何外部引用 —— 已 grep 确认
+- 未实现任何未来阶段的功能（`taskExtractor` / `sorter` / `parse` / UI 一律未写）
+- **无真实聊天记录进入仓库** —— 全部样例自行编造
+- 无密钥
+
+### Git Status
+
+- 分支 `main`，baseline `3d48ebe`
+- backup 分支 `backup/pre-phase4-timeparser-20261009-1844` → `3d48ebe`（已推送）
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+
+### Rollback Judgment
+
+本阶段以**新增文件**为主（`index.html`、`tests/`），撤销成本低。
+若要回滚：`git revert <Phase 4 提交>`，或回到 backup 分支。
+注意 `index.html` 在本阶段只是骨架 + 领域层，回滚它不会丢失任何界面代码（界面尚不存在）。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| **A-006 未验证** | 裸 `X点` 的 12/24 推断是启发式。猜错比漏检更难被发现，Phase 8 必须单独统计 |
+| **`X-Y` 与 `X/X` 的误检** | `3-5`、`1/2` 之类可能是分数、比例、编号而非日期。§1.A 已声明接受此代价，但真实数据里频率未知 |
+| 屏蔽式 §2 实现的复杂度 | 先屏蔽再解析比正向扫描多一层。收益是 §2 真的能返回 null；代价是新增表达时要同时考虑会不会被误屏蔽 |
+| 加模式时容易破坏左最优先 | `pickLeftmost` 取「最靠左，同位置取最长」。新增模式若起点更靠左，会改变既有表达的结果。改模式表后**必须全量跑测试** |
+
+### Next Step
+
+Phase 5 —— `taskExtractor` + `sorter` + `parse` 组装，规格来源是
+`SUPPORTED_EXPRESSIONS.md` §4 的动作词表（初稿，Phase 5 实现时扩充）。
+反向用例的重要性不亚于正向：识别类功能最常见的失败是**误检**。

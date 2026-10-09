@@ -243,3 +243,108 @@ docs/construction/progress/layers/00-foundation.md、01-domain.md、02-ui.md
 - 建立测试载体（Phase 4）
 - 真实数据验证（Phase 8）
 - 仓库改名（仍挂起，不属本阶段）
+
+---
+## 2026-10-09 18:45 / Phase 4 / Start Plan
+
+### Objective
+
+实现 `timeParser(text, now) => Date | null`，并建立 `node --test` 测试载体。
+这是整个产品里最难、也最值得先做的一块。
+
+本阶段是**第一行应用代码**。产出：
+
+1. `index.html` 骨架，内含 `<script id="zhaiwu-domain">` 块（D-009 的结构）
+2. `tests/load-domain.mjs` —— VM 提取测试载体（D-009）
+3. `timeParser` 实现，时间词表**数据化**
+4. 测试用例：覆盖 `SUPPORTED_EXPRESSIONS.md` §1 的全部 69 条
+   + §2 的 28 条反向用例 + 边界（跨月、跨年、闰年、今天已过的时间点）
+
+### 实现顺序（重要）
+
+**先建测试载体与骨架，再写解析器。**
+`timeParser` 的质量完全取决于测试覆盖；先把解析器写完再补测试，等于没有规格。
+
+### Affected Layers
+
+- 领域层 —— 本阶段主体
+- 交付层 / UI 层 —— 不触碰（Phase 6/7）
+
+### Planned File Changes
+
+| 文件 | 动作 |
+|---|---|
+| `index.html` | 新建（骨架 + 内联领域层 script 块） |
+| `tests/load-domain.mjs` | 新建（VM 提取引导） |
+| `tests/time-parser.test.mjs` | 新建（用例） |
+| `docs/construction/TEST_METRICS.md` | 更新（基线从 Not established 变为已有） |
+| `docs/construction/ARCHITECTURE.md` | 更新（目录结构出现 `tests/`） |
+| `docs/construction/progress/layers/01-domain.md` | 更新（`timeParser` 状态） |
+| `docs/construction/progress/layers/04-testing-deployment.md` | 更新（测试载体已建立） |
+| `docs/construction/CONSTRUCTION_PLAN.md` | 更新（Phase 4 状态） |
+| `docs/construction/LOG.md` | 追加 |
+| `docs/construction/HANDOFF.md` | 更新 |
+| `AGENTS.md` | 更新（Current Phase） |
+
+### Repository State
+
+- 分支 `main`，HEAD `3d48ebe`，与 `origin/main` 一致
+- 工作树干净
+- 测试基线 `Not established`（本阶段结束后应变为已建立）
+
+### Backup Branch
+
+`backup/pre-phase4-timeparser-20261009-1844` → `3d48ebe`（已推送）
+
+### Rollback Plan
+
+`git revert <Phase 4 提交>`，或回退到 backup 分支。
+本阶段新增文件为主，撤销成本低。
+
+### Acceptance Criteria
+
+1. `node --test tests/` 可运行，全部用例通过
+2. `SUPPORTED_EXPRESSIONS.md` §1 的 69 条**每一条**都有对应测试
+3. §2 的 28 条反向用例全部返回 `null`
+4. 领域层无 `document` / `window` / `fetch` / `localStorage`（静态检查）
+5. 领域层不自己读当前时间——只接受注入的 `now`（静态检查）
+6. `index.html` 仍为单文件，且可在浏览器双击打开（Phase 6 完整验证，
+   本阶段只验证不引入跨文件依赖）
+
+### Explicit Exclusions
+
+- **`taskExtractor` 与 `sorter`**（Phase 5）
+- **`parse` 组装**（Phase 5 —— 本阶段只交付 `timeParser`）
+- 任何界面与交互（Phase 6）
+- 复制 / 下载（Phase 7）
+- 任何 `SUPPORTED_EXPRESSIONS.md` §2 列出的表达
+- 任何第三方依赖、`package.json`、构建步骤
+- 真实聊天记录（测试样例必须自行编造）
+
+### Phase 4 / Completion（2026-10-09）
+
+**状态：Complete**
+
+| 交付物 | 结果 |
+|---|---|
+| `index.html` | 已建立。严格单文件，无外部引用；领域层内联于 `<script id="zhaiwu-domain">` |
+| `tests/load-domain.mjs` | 已建立。按 D-009 用 `node:vm` 提取领域层 |
+| `tests/time-parser.test.mjs` | 已建立。130 个用例 |
+| `timeParser(text, now)` | 已实现，时间词表数据化为四张模式表 |
+| `timeParserDetail(text, now)` | 已实现，承载 `fuzzy`（D-011） |
+
+**测试结果：** `node --test` → **130 passed / 0 failed**
+
+**偏离计划之处（均已记录）：**
+
+1. **测试命令改了。** 计划写的 `node --test tests/` 在 Node 24 下不成立
+   （位置参数被当作模块入口，报 `MODULE_NOT_FOUND`）。改用零参数的 `node --test`。
+   Phase 1–3 文档里的目录形式已全部改正。
+2. **多了一个导出 `timeParserDetail`。** `timeParser(text, now) => Date | null` 契约不变，
+   但 D-010 的 `fuzzy` 需要传出去。记为新决策 **D-011**。
+3. **`SUPPORTED_EXPRESSIONS.md` 补了三处。** §0 补定裸 `X点` 的 12/24 推断规则（D-012）、
+   补定附带时间点的判定；§2 与 §3 补记「先屏蔽再解析」的实现要点与紧邻规则。
+   均为原文档未写明的推论，不是清单条目增减——**69 / 28 的条目数未变**，
+   测试里有对这两个数字的断言。
+
+**未做（按排除项）：** `taskExtractor`、`sorter`、`parse` 组装、任何界面。
