@@ -257,7 +257,14 @@ Phase 4
 
 ---
 
-## Phase 6: UI 层 ⬜
+## Phase 6: UI 层 ✅
+
+> 产出：`index.html` 新增 `<style id="zhaiwu-style">`、页面骨架（粘贴区 /
+> 结果列表 / 手动补漏三个面板）、`<script id="zhaiwu-ui">`（约 190 行）。
+> 领域层未改动，`node --test` 仍为 **315 passed / 0 failed**。
+> 渲染与状态用一次性 DOM 桩验证（9 组 30 项全通过，脚本有意不进仓库）；
+> **浏览器中的真实行为未验证**，见 `progress/layers/02-ui.md` 的手动清单。
+> 下一个动代码的阶段是 Phase 7（交付层）。
 
 ### Goal
 交付一个可双击打开、可实际使用的界面。
@@ -280,13 +287,15 @@ Phase 4
 Phase 5
 
 ### Tests
-人工验证（本版 UI 不做自动化测试，见 `TEST_METRICS.md`）
+渲染与状态：一次性 DOM 桩（不进仓库）。
+浏览器真实行为：**人工验证**，清单见 `progress/layers/02-ui.md`，结果记入 `LOG.md`。
 
 ### Acceptance Criteria
 能用一段真实风格的聊天记录走完主路径；手动补漏在 10 秒内完成；误检可删除。
+**验收状态：桩层面已通过；浏览器层面 `Not established`**（本机无法启动浏览器）。
 
 ### Rollback Point
-Phase 2 的 backup 分支
+`backup/pre-phase6-ui-20261009-1913` → `42dc887`（写第一行 UI 代码之前）
 
 ---
 

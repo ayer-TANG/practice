@@ -4,10 +4,150 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>摘务</title>
+<style id="zhaiwu-style">
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --line: #e2e5ea;
+    --text: #1b1d21;
+    --muted: #6b7280;
+    --accent: #2f6feb;
+    --warn: #a15c07;
+    --danger: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 16px 72px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.65 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.02em; }
+  .tagline { margin: 0; color: var(--muted); font-size: 14px; }
+  header { margin-bottom: 20px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  textarea, input[type=text] {
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+  }
+  textarea { resize: vertical; min-height: 120px; }
+  textarea:focus, input[type=text]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    border-color: transparent;
+  }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  button {
+    font: inherit;
+    padding: 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: inherit;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  button:hover { background: #f1f3f6; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #2a62d0; }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .group + .group { margin-top: 22px; }
+  .group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 6px;
+  }
+  ul.tasks { list-style: none; margin: 0; padding: 0; }
+  li.task {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  li.task:first-child { border-top: none; }
+  .task-when {
+    flex: 0 0 auto;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .task-when.none { color: var(--muted); }
+  .task-text { flex: 1 1 auto; word-break: break-word; }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--warn);
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 0 4px;
+    margin-left: 6px;
+    white-space: nowrap;
+    cursor: help;
+  }
+  .badge.manual { color: var(--muted); }
+  .task-del {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    color: var(--muted);
+    padding: 2px 4px;
+    font-size: 13px;
+  }
+  .task-del:hover { background: none; color: var(--danger); }
+  .empty { color: var(--muted); font-size: 14px; margin: 0; }
+  .empty strong { color: var(--text); }
+</style>
 </head>
 <body>
 
-<p>摘务 —— 界面在 Phase 6 实现。当前文件只承载领域层（见 D-009）。</p>
+<div class="wrap">
+
+  <header>
+    <h1>摘务</h1>
+    <p class="tagline">粘贴聊天记录，抽出「要做什么 + 什么时候前做完」，按紧急度排好序。</p>
+  </header>
+
+  <section class="panel">
+    <label class="label" for="chat-input">① 粘贴聊天记录（≤10 条，每条一行）</label>
+    <textarea id="chat-input" placeholder="例如：&#10;收到&#10;明天下午三点前把上周的报表发我一下&#10;另外记得周五之前跟客户确认交付时间"></textarea>
+    <div class="row">
+      <button id="extract-btn" class="primary" type="button">抽取</button>
+      <span id="hint" class="hint" style="margin:0"></span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div id="results"></div>
+  </section>
+
+  <section class="panel">
+    <label class="label" for="manual-input">② 漏掉了？手动补一条</label>
+    <div class="row">
+      <input id="manual-input" type="text" placeholder="例如：周五之前把初稿发我">
+      <button id="add-btn" type="button">加入列表</button>
+    </div>
+    <p class="hint">手动补的条目会一直留着，再点「抽取」也不会被清掉。</p>
+  </section>
+
+</div>
 
 <!--
   领域层（Domain）
@@ -651,6 +791,209 @@
     makeTask: makeTask,
     parse: parse
   };
+})();
+</script>
+
+<!--
+  UI 层（Phase 6）
+
+  依赖方向：UI → 领域层（见 LAYER_CONTRACT.md）。
+  本层**不内嵌任何正则或词表**——识别规则只允许存在于上面的领域层。
+  本层唯一的额外职责是「读浏览器当前时间并注入领域层」：领域层绝不自己读时间。
+
+  刻意与领域层分成两个 script 块：纯度静态检查只扫 zhaiwu-domain 那一块
+  （tests/load-domain.mjs 的正则非贪婪匹配），UI 代码混进去会让检查失效。
+-->
+<script id="zhaiwu-ui">
+(function () {
+  'use strict';
+
+  var domain = globalThis.__zhaiwuDomain;
+  if (!domain || typeof domain.parse !== 'function') {
+    document.getElementById('results').textContent =
+      '领域层未加载，界面无法工作。请确认 index.html 未被拆分或改动。';
+    return;
+  }
+
+  var chatInput = document.getElementById('chat-input');
+  var extractBtn = document.getElementById('extract-btn');
+  var resultsEl = document.getElementById('results');
+  var manualInput = document.getElementById('manual-input');
+  var addBtn = document.getElementById('add-btn');
+  var hintEl = document.getElementById('hint');
+
+  var ruleTasks = [];      // 最近一次「抽取」的结果
+  var manualTasks = [];    // 手动补的条目，跨抽取保留
+  var tasks = [];          // 展示用 = sorter(ruleTasks + manualTasks)
+  var hasExtracted = false;
+  var manualSeq = 0;
+
+  // ---- 展示 ----------------------------------------------------------------
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function fmtDeadline(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  // 全部用 textContent 构造：任务文本来自用户粘贴的聊天记录，
+  // 走 innerHTML 会把记录里的标签当成 HTML 执行。
+  function taskNode(t) {
+    var li = document.createElement('li');
+    li.className = 'task';
+
+    var when = document.createElement('span');
+    when.className = (t.deadline === null ? 'task-when none' : 'task-when');
+    when.textContent = (t.deadline === null ? '未识别到时间' : fmtDeadline(t.deadline));
+    li.appendChild(when);
+
+    var text = document.createElement('span');
+    text.className = 'task-text';
+    text.textContent = t.text;
+
+    if (t.fuzzy) {
+      // D-010：紧迫词是「约定映射」而非对方原话，必须让用户看出来
+      var b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = '推定';
+      b.title = '来自「尽快 / 马上 / 抓紧」这类紧迫词，按今天结束前计算。' +
+        '这不是对方说的明确时间。';
+      text.appendChild(b);
+    }
+    if (t.source === 'manual') {
+      var m = document.createElement('span');
+      m.className = 'badge manual';
+      m.textContent = '手动补的';
+      text.appendChild(m);
+    }
+    li.appendChild(text);
+
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'task-del';
+    del.textContent = '删除';
+    del.title = '从列表移除';
+    del.addEventListener('click', function () { removeTask(t.id); });
+    li.appendChild(del);
+
+    return li;
+  }
+
+  function groupNode(title, list) {
+    var sec = document.createElement('div');
+    sec.className = 'group';
+
+    var h = document.createElement('p');
+    h.className = 'group-title';
+    h.textContent = title + '（' + list.length + '）';
+    sec.appendChild(h);
+
+    var ul = document.createElement('ul');
+    ul.className = 'tasks';
+    for (var i = 0; i < list.length; i++) ul.appendChild(taskNode(list[i]));
+    sec.appendChild(ul);
+
+    return sec;
+  }
+
+  function render() {
+    resultsEl.textContent = '';
+
+    if (tasks.length === 0) {
+      var p = document.createElement('p');
+      p.className = 'empty';
+      if (hasExtracted) {
+        // 规则一定会漏。空结果必须给出路，否则用户会以为坏了。
+        var strong = document.createElement('strong');
+        strong.textContent = '没识别到任务。';
+        p.appendChild(strong);
+        p.appendChild(document.createTextNode(
+          '规则认的是动作词（提交 / 发我 / 记得…）和时间词，口语化的说法容易漏。' +
+          '用下面的输入框手动补一条。'));
+      } else {
+        p.textContent = '粘贴聊天记录后点「抽取」。';
+      }
+      resultsEl.appendChild(p);
+      return;
+    }
+
+    var timed = [], untimed = [];
+    for (var i = 0; i < tasks.length; i++) {
+      (tasks[i].deadline === null ? untimed : timed).push(tasks[i]);
+    }
+
+    if (timed.length > 0) resultsEl.appendChild(groupNode('有截止时间', timed));
+    if (untimed.length > 0) resultsEl.appendChild(groupNode('未识别到时间', untimed));
+  }
+
+  // ---- 状态 ----------------------------------------------------------------
+
+  function recompute() {
+    tasks = domain.sorter(ruleTasks.concat(manualTasks));
+    render();
+  }
+
+  function runExtract() {
+    // 领域层绝不自己读时间（LAYER_CONTRACT.md）——由 UI 读取并注入
+    var now = new Date();
+    ruleTasks = domain.parse(chatInput.value, now);
+    hasExtracted = true;
+
+    recompute();
+
+    var n = ruleTasks.length, m = manualTasks.length;
+    hintEl.textContent = (n === 0 ? '没识别到任务句' : '识别到 ' + n + ' 条') +
+      (m > 0 ? '，另有 ' + m + ' 条手动补的' : '');
+  }
+
+  function removeTask(id) {
+    ruleTasks = ruleTasks.filter(function (t) { return t.id !== id; });
+    manualTasks = manualTasks.filter(function (t) { return t.id !== id; });
+    recompute();
+  }
+
+  function addManual() {
+    var text = manualInput.value.trim();
+    if (text === '') return;
+
+    // 手动补的条目也解析时间——用户完全可能写「周五之前把初稿发我」
+    var parsed = domain.timeParserDetail(text, new Date());
+
+    manualSeq += 1;
+    manualTasks.push(domain.makeTask({
+      id: 'm' + manualSeq,
+      text: text,
+      deadline: parsed.date,
+      fuzzy: parsed.fuzzy,
+      source: 'manual',
+      raw: ''        // 手动条目没有聊天原文可核对
+    }));
+    manualInput.value = '';
+    recompute();
+    manualInput.focus();
+  }
+
+  // ---- 事件 ----------------------------------------------------------------
+
+  extractBtn.addEventListener('click', runExtract);
+  addBtn.addEventListener('click', addManual);
+
+  // 粘贴区 Ctrl/Cmd+Enter 直接抽取；补漏框 Enter 直接加入
+  chatInput.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      runExtract();
+    }
+  });
+  manualInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addManual();
+    }
+  });
+
+  render();
 })();
 </script>
 

@@ -3,9 +3,11 @@
 **当前测试基线：`315 passed / 0 failed`（`node --test`）**
 
 领域层三个子模块（`timeParser` / `taskExtractor` / `sorter`）与组装函数 `parse`
-的单元测试已全部建立并通过。UI 层、交付层、真实数据度量仍未建立——见下方「未建立项」。
+的单元测试已全部建立并通过。UI 层的**渲染与状态**另用一次性 DOM 桩在 Node 中验证过
+（**脚本有意不进仓库，不计入上表基线**）。浏览器行为、交付层、真实数据度量仍未建立
+——见下方「未建立项」。
 
-最后更新：2026-10-09（Phase 5）
+最后更新：2026-10-09（Phase 6）
 
 ---
 
@@ -51,6 +53,7 @@
 | 领域层单元测试 · 组装与排序 | `tests/parse.test.mjs` | Phase 5 | `makeTask` / `sorter` / `parse` 端到端 |
 | 领域层纯度静态检查 | `tests/time-parser.test.mjs` 的「领域层纯度」套件 | Phase 4 | 无 DOM / 无网络 / 无存储 / 不自读系统时间。**扫的是 `index.html` 的领域层全文**，因此 Phase 5 新增代码自动被覆盖 |
 | 导出契约守门 | `tests/load-domain.mjs` | Phase 5 | 7 个必需导出缺一即抛错，不让测试报出难懂的错 |
+| **UI 渲染与状态** | 一次性 DOM 桩（**不进仓库**） | Phase 6 | 渲染结果与状态流转，9 组 30 项全通过。**不计入 315 基线**，它测不到浏览器行为 |
 | 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
 
 ## 计划建立的检查
@@ -58,8 +61,16 @@
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
 | 交付层单元测试 | `node --test` | Phase 7 | `renderMarkdown` 纯函数输出 |
-| UI 主路径 | **人工验证** | Phase 6 | 本版不做自动化，如实记录 |
+| **UI 浏览器行为** | **人工验证，`Not established`** | Phase 6 | 本机无法启动浏览器。清单在 `progress/layers/02-ui.md`，须由用户执行并记入 `LOG.md` |
 | 复制/下载 | **人工验证** | Phase 7 | Chrome / Edge 各一次 |
+
+**为什么 UI 的 DOM 桩不进仓库**：它无法测试真正会出问题的地方——真实浏览器事件、
+真实粘贴（含富文本残留）、CSS 布局、`file://` 下的加载行为。把它纳入基线会制造
+**虚假的覆盖率安全感**，并带来长期维护成本。它是开发时的探针，不是回归资产。
+
+**同样是桩，为什么它的结果可以报告**：因为它验证的是**渲染逻辑与状态流转**
+（分组、排序、徽章、保留语义、删除），这些在桩上和真实 DOM 上行为一致；
+而它验证不了的（浏览器行为）被明确列为 `Not established`，没有被冒充成通过。
 
 **关于 lint / typecheck**：本项目零依赖、无构建工具，因此不会引入 ESLint 或 TypeScript。
 这两项将永久保持 `Not established`。这是决策的结果，不是遗漏。
@@ -151,6 +162,7 @@ Result:
 - [x] `timeParser` 测试（Phase 4）
 - [x] 领域层纯度静态检查（Phase 4）
 - [x] `taskExtractor` / `sorter` / `parse` 测试（Phase 5）
+- [x] UI 渲染与状态验证——一次性 DOM 桩，**不进仓库**（Phase 6）
 - [ ] `renderMarkdown` 测试（Phase 7）
-- [ ] UI 主路径人工验证（Phase 6）
+- [ ] **UI 浏览器行为人工验证（Phase 6 已交付待验，`Not established`）**
 - [ ] 真实数据度量记录（Phase 8）

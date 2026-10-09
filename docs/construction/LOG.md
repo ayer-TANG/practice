@@ -861,3 +861,160 @@ Phase 6 —— UI 层。**UI 层不得内嵌任何正则或词表**（`LAYER_CON
 界面上必须体现的两件事：
 1. `fuzzy` 标注 —— 不能让用户以为「尽快」是对方说的明确时间（诚实性要求，非装饰）
 2. 「未识别到时间」独立分组 —— 分界线就是 `deadline === null`
+
+---
+
+## 2026-10-09 19:15 / Phase 6 / Work Log
+
+### Plan Replay
+
+按 `DEV_PROGRESS.md` 的 start plan 执行：写界面（样式 + 骨架 + UI 脚本）。
+
+**先建回滚点再动手**：`backup/pre-phase6-ui-20261009-1913` → `42dc887`（已推送）。
+
+领域层**一行未改**，`node --test` 全程保持 315 passed。
+
+### Actual Changes
+
+**`index.html` 新增三块：**
+
+| 项 | 说明 |
+|---|---|
+| `<style id="zhaiwu-style">` | 约 110 行。`:root` 变量、系统字体栈。无外部字体、无 `@import`、无 `url()` |
+| body 骨架 | `header`（标题 + 一句话说明）+ 三个 `section.panel`：粘贴区 / 结果区 / 手动补漏 |
+| `<script id="zhaiwu-ui">` | 约 190 行，IIFE + `'use strict'` |
+
+UI 脚本内部：
+
+| 函数 | 职责 |
+|---|---|
+| `fmtDeadline(d)` | `Date` → `YYYY-MM-DD HH:mm`（本地时区） |
+| `taskNode(t)` | 单条 `<li class="task">`：时刻 + 文本（+ 徽章）+ 删除按钮 |
+| `groupNode(title, list)` | 分组容器，标题含条数 |
+| `render()` | 空态分支 / 两分组分支 |
+| `recompute()` | `domain.sorter(ruleTasks.concat(manualTasks))` 后重绘 |
+| `runExtract()` | **UI 读 `new Date()`** → `domain.parse(text, now)` → 更新 hint |
+| `removeTask(id)` | 从两个数组里同时移除后重算 |
+| `addManual()` | `domain.timeParserDetail(text, new Date())` → `domain.makeTask(...)` → 推入 |
+
+**约束落实情况（提交前逐条 grep 验证）：**
+
+| 约束 | 验证方式 | 结果 |
+|---|---|---|
+| 无外部引用 | `grep -E '<(script\|link\|img)[^>]*(src\|href)='` | 无 |
+| 无 `@import` / `url()` | `grep -E '@import\|url\('` | 无 |
+| 无网络 / 存储 | `grep -E 'fetch(\|XMLHttpRequest\|localStorage\|sessionStorage\|document\.cookie'` | 无 |
+| 无内嵌正则 | 人工通读 UI 块 | 无 |
+| 无 `innerHTML` | `grep innerHTML`（唯一的命中是第 35 行的**注释**） | 无 |
+| `new Date()` 只在 UI 层 | `grep 'new Date'`（2 处，均在 `zhaiwu-ui` 块内） | 符合 |
+
+### Test Attempts
+
+本阶段不新增 `node --test` 用例（UI 不做自动化测试是既定决策）。
+但**开发时写了一次性 DOM 桩**验证渲染与状态，它报了 **9 项失败**。
+
+这个诊断过程值得完整记录，因为它演示了一条纪律。
+
+#### Test Attempt 1
+
+```
+Command: node <临时目录>/verify-ui.mjs
+Result:  Failed —— 9 项失败
+```
+
+最强的信号是：带徽章的任务渲染成了 `2026-10-09 23:59推定删除` ——
+**任务描述整个不见了**（`另外记得提醒我周五之前跟客户确认一下交付时间` 消失）。
+看形状像是 `textContent` 的问题。
+
+#### Diagnosis（先分类，再决定动不动产品代码）
+
+**失败一：任务文本"消失" —— 桩的缺陷，不是产品缺陷。**
+
+我的桩里 `textContent` 的 getter 写的是：
+
+```js
+if (this.children.length) return this.children.map(...).join('');  // 丢了 _text
+return this._text;
+```
+
+而真实 DOM 的语义是：`textContent = x` 会把内容变成**一个文本子节点**，
+随后的 `appendChild(badge)` 是**追加**在它后面。
+`taskNode` 先设 `text.textContent = t.text` 再 `text.appendChild(b)`，
+在真 DOM 里两者都在，在我的桩里 `_text` 被静默丢弃。
+
+**失败二：断言「未识别到时间组 1 条」——我的测试预期错，不是代码错。**
+
+我选的语料三句全含时间词（「明天下午三点前」「周五之前」「尽快」），
+本来就**不该**有「未识别到时间」分组。代码是对的，断言是错的。
+
+**失败三～九：都是上面两条的连锁反应**（手动条目"消失"、删除后计数不符等），
+根因同一个。
+
+**结论：9 项失败里 0 项是产品代码缺陷。**
+
+诊断顺序是刻意选的：**先证明是桩错还是代码错，再动产品代码**。
+若反过来先去"修" UI，就会把本来正确的代码改坏。
+
+#### Fix
+
+| 文件 | 改动 |
+|---|---|
+| 桩 | `textContent` getter 改为 `children.map(c => c.textContent).join('')`；setter 改为 `children = [textNode(v)]`。特判 `#TEXT` 节点返回自身 `_text` |
+| 桩 | `createTextNode` 返回 `#TEXT` 节点而不是普通元素 |
+| 测试语料 | 加入一条**真正无时间**的任务「记得带身份证」，让「未识别到时间」分组有内容 |
+| 测试断言 | 删除按钮改为按内容定位（不再假设"第一条"是我以为的那条） |
+| 测试序列 | 空状态用例改为先清掉手动条目再抽纯寒暄，使 `tasks.length` 真的为 0 |
+
+#### Retest
+
+```
+Command: node <临时目录>/verify-ui.mjs
+Result:  全部通过（9 组 30 项）
+```
+
+覆盖：初始提示、分组与条数、寒暄不入选、文本与时刻成对、时刻升序、
+无截止垫底、`推定` 徽章唯一且带解释性 `title`、手动补漏、再次抽取不翻倍
+且手动条目保留、删除、空状态、空输入、回车键。
+
+**该脚本有意不进仓库**，理由是它测不到真正会出问题的地方（真实浏览器事件、
+真实粘贴、CSS 布局、`file://` 加载行为），纳入基线只会制造虚假的覆盖率安全感。
+
+### Verification
+
+- **`node --test` → 315 passed / 0 failed**（与 Phase 5 相同，领域层未被触碰）
+- 领域层纯度静态检查仍通过（UI 代码放在独立 script 块，未被扫到）
+- 单文件约束保持：无外部 script/link/字体/网络请求
+- 全部语料自行编造 —— **无真实聊天记录进入仓库**
+- 未实现任何未来阶段的功能（无 `renderMarkdown`、无复制、无下载）
+- 无密钥
+- **浏览器真实行为：`Not established`** —— 本机无法启动浏览器。
+  验证清单在 `progress/layers/02-ui.md`，须由用户执行并记入本文件
+
+### Git Status
+
+- 分支 `main`，baseline `42dc887`
+- backup 分支 `backup/pre-phase6-ui-20261009-1913` → `42dc887`（已推送）
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+
+### Rollback Judgment
+
+本阶段改动**只在一处**：`index.html` 追加了样式块、body 骨架、UI 脚本块。
+领域层与 `tests/` 一行未改，因此回滚本阶段**不会影响任何测试**。
+
+若要回滚：`git revert <Phase 6 提交>`，或回到
+`backup/pre-phase6-ui-20261009-1913`。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| **浏览器行为未验证** | 桩测试通过不等于浏览器里能用。CSS 布局、真实粘贴（含富文本残留）、触屏点击均未验证。**这是本阶段最大的未闭合项** |
+| **软耦合：文案举例了词表** | `fuzzy` 徽章的 `title` 写了「尽快 / 马上 / 抓紧」。词表若增删紧迫词，文案需同步。Phase 8 校准词表时注意 |
+| **已知行为：删除后重抽会复活** | 删除某条规则条目后再次点「抽取」，该条目重新出现。这是"抽取 = 重算"语义的必然结果，已记录而非修改 |
+| `Task.id` 依赖行号 | 本阶段已遵守（UI 在同一次 `parse` 调用里取用 id，不重新拼文本），风险已缓解 |
+| A-001 / A-004 仍未验证 | 召回率与"用户是否愿意手动补漏"都要等 Phase 8。本阶段只让它们变得可观察 |
+
+### Next Step
+
+Phase 7 —— 交付层。`renderMarkdown(tasks) => string` 是**纯函数**，不得触碰 DOM；
+剪贴板与下载才属于 UI 层。动手前先读 `LAYER_CONTRACT.md` 的交付层一节。

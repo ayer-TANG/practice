@@ -39,16 +39,22 @@
 - 如实报告状态（Complete / Partially complete / Blocked）
 
 ## Current Phase
-Phase 5 完成：**领域层已完成**（`node --test` → **315 passed**）。
-`parse(text, now) => Task[]` 已可用，端到端能跑出排好序的任务列表。
-**但产品仍不可用**——`index.html` 里没有一行界面代码，只有领域层和一行占位文字。
+Phase 6 完成：**UI 层已实现**，领域层未改动（`node --test` → **315 passed**）。
+`index.html` 现在可双击打开并实际使用：粘贴 → 抽取 → 分组结果 → 手动补漏 → 删除误检。
+
+**但浏览器中的真实行为未验证**（本机无法启动浏览器）。渲染与状态用一次性 DOM 桩
+验证过（9 组 30 项全通过，脚本有意不进仓库），两者不是一回事。
+手动验证清单在 `docs/construction/progress/layers/02-ui.md`，需用户执行并记入 `LOG.md`。
 
 仓库改名 `practice` → `zhaiwu` **已完成**（用户于 2026-10-09 在网页端执行 R-1，
 agent 已执行 R-2 与 R-3）。仅剩 R-4（本地目录改名，待 Phase 9，属物理约束）。
 
-下一步：Phase 6（UI 层）——粘贴区、抽取按钮、结果列表、手动补漏、误检删除。
-动手前先读 `LAYER_CONTRACT.md` 的 UI 层一节：**UI 层不得内嵌任何正则或词表**，
-识别规则只允许存在于领域层。
+下一步：Phase 7（交付层）——`renderMarkdown`、复制到剪贴板、下载 `.md`。
+动手前先读 `LAYER_CONTRACT.md` 的交付层一节：**`renderMarkdown` 是纯函数**，
+不得触碰 DOM；剪贴板与下载才属于 UI 层的活儿。
+
+**UI 代码不得写进 `<script id="zhaiwu-domain">` 块。** 领域层纯度静态检查只扫描该块，
+混入 UI 代码会让「不出现 document」「不自己读当前时间」两条检查失败。
 
 改动作词表（`SUPPORTED_EXPRESSIONS.md` §4）时必须三处同步：代码、该文档、测试里的数量断言。
 本轮确立的纪律是：**已知误检与已知漏检都写成断言，不写成注释**——

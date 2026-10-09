@@ -40,9 +40,9 @@
 
 | 层 | 职责 | 允许依赖 | 禁止依赖 | 现状 |
 |---|---|---|---|---|
-| UI 层 | 粘贴区、抽取按钮、结果列表、补漏输入框、删除、复制/下载按钮的渲染与事件 | 领域层、交付层 | 解析规则（正则不得写在 UI 层） | 不存在 |
+| UI 层 | 粘贴区、抽取按钮、结果列表、补漏输入框、删除、复制/下载按钮的渲染与事件 | 领域层、交付层 | 解析规则（正则不得写在 UI 层） | **已完成**（Phase 6；复制/下载待 Phase 7） |
 | 领域层（核心） | `Task` 类型；`taskExtractor` 任务句识别；`timeParser` 时间解析；`sorter` 排序与分组 | 仅 JS 内置能力 | **DOM、网络、localStorage** | **已完成**（Phase 5） |
-| 交付层 | 把 `Task[]` 渲染成 Markdown；复制到剪贴板；下载 `.md` | 领域层的 `Task` 类型 | 被领域层反向依赖 | 不存在 |
+| 交付层 | 把 `Task[]` 渲染成 Markdown；复制到剪贴板；下载 `.md` | 领域层的 `Task` 类型 | 被领域层反向依赖 | 不存在（Phase 7） |
 | 数据层 | —— | —— | —— | **N/A**（本版无持久化） |
 | 认证层 | —— | —— | —— | **N/A**（单用户无账号） |
 | 存储层 | —— | —— | —— | **N/A**（无文件/对象存储需求） |
@@ -54,7 +54,9 @@
 ### 仓库目录结构
 
 ```
-index.html                         交付物。领域层内联在 <script id="zhaiwu-domain"> 内（D-009）
+index.html                         交付物。三块内联：样式 <style id="zhaiwu-style">、
+                                   领域层 <script id="zhaiwu-domain">（D-009）、
+                                   UI 层 <script id="zhaiwu-ui">（Phase 6）
 tests/load-domain.mjs              测试引导：提取 index.html 里的领域层并求值（不随产品发布）
 tests/time-parser.test.mjs         timeParser 的用例
 docs/product/                      产品真值
@@ -137,7 +139,9 @@ Task {
   - `taskExtractor`：命中用例 + **不命中用例**（「收到」「哈哈哈」不得被判为任务）—— **Phase 5 已完成**
   - `sorter`：排序正确性 + 无截止时间的分组与位置 —— **Phase 5 已完成**
   - `parse`：端到端组装与输出不变式 —— **Phase 5 已完成**
-- UI 层与交付层：本版不做自动化测试，人工验证。这一点必须诚实记录在 `TEST_METRICS.md`。
+- UI 层：**渲染与状态**用一次性 DOM 桩在 Node 中跑过（脚本有意不进仓库）；
+  **浏览器中的真实行为不做自动化测试，人工验证**。两者的区别必须诚实记录在 `TEST_METRICS.md`。
+- 交付层：不做自动化测试，人工验证。
 
 ### Decision D-009：OD-001 —— 单文件与可测试性的冲突（**已关闭**）
 
@@ -172,6 +176,9 @@ classic script（`<script src="app.js">`）在 `file://` 下可以加载。
 **具体做法：**
 
 - 领域层代码内联在 `index.html` 中一个带稳定标记的 `<script id="zhaiwu-domain">` 块内
+- **UI 层必须放在另一个独立的 `<script id="zhaiwu-ui">` 块内**（Phase 6 起）。
+  领域层纯度静态检查只扫描 `zhaiwu-domain` 块的正文，混入 UI 代码会让
+  「不出现 `document`」「不自己读当前时间」两条检查失败
 - 该块末尾把命名空间挂到 `globalThis`，使宿主能取到（Phase 5 现状）：
   `globalThis.__zhaiwuDomain = { version, timeParser, timeParserDetail, isTaskLine, taskExtractor, makeTask, sorter, parse }`
   （在浏览器里这只是一个无害的全局变量）
