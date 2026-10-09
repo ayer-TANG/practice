@@ -101,7 +101,8 @@
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `b764476`（仓库初始化） |
-| 与远端关系 | 提交前本地与 `origin/main` 一致（`git ls-remote` 实测） |
+| Phase 1 提交 | `ce56c9b` |
+| 与远端关系 | 已同步。`b764476..ce56c9b` 已推送至 `origin/main` |
 | remote | `https://github.com/ayer-TANG/practice` |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
 
@@ -126,12 +127,21 @@ git switch main
 
 ## Latest Commit
 
-见本文件的提交历史。Phase 1 的提交信息为
-`docs: 建立摘务的产品与施工文档体系`。
+| 提交 | 说明 |
+|---|---|
+| `ce56c9b` | Phase 1 主体提交 —— `docs: 建立摘务的产品与施工文档体系`（20 files changed, 2243 insertions, 4 deletions） |
+| 本文件所在提交 | 补记 `ce56c9b` 的提交号与推送状态，使 handoff 自洽 |
 
 ## Push Status
 
-见下方 Git State 与用户收到的收工报告。
+**已推送。**
+
+```
+To https://github.com/ayer-TANG/practice
+   b764476..ce56c9b  main -> main
+```
+
+`origin/main` 现指向 `ce56c9b`（或本文件所在的后续提交）。
 
 ## Working Tree
 
