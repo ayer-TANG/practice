@@ -285,6 +285,8 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `8f58ec2` | **Phase 8 第 1 组**：真实语料暴露的两处规格缺口修复（括号插入语、时段词+冒号时刻），377 passed |
 | `b83b614` | Phase 8 第 1 组补记：提交号与备份分支 |
 | `9a3e99b` | **Phase 8 第 2 组**：F8-7 规格错误修复（日期段自带的约定时刻吞掉显式时间点），381 passed |
+| `c131006` | Phase 8 第 2 组补记：提交号与推送状态 |
+| `27ddb00` | **Phase 8 第 3–10 组**：F8-10 规格缺口修复（带年份的数字日期 `YYYY-MM-DD`）+ 10 组度量写盘 + Assumption Register 更新 A-001，384 passed |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
@@ -297,7 +299,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 
 ```
 To https://github.com/ayer-TANG/zhaiwu.git
-   b83b614..9a3e99b  main -> main
+   c131006..27ddb00  main -> main
 ```
 
 | 阶段 | 推送状态 |
@@ -307,6 +309,7 @@ To https://github.com/ayer-TANG/zhaiwu.git
 | Phase 7 | ✅ 已推送（`787a6e7..646a5c6`） |
 | Phase 8 第 1 组 | ✅ 已推送（`dda1ae9..b83b614`） |
 | Phase 8 第 2 组 | ✅ 已推送（`b83b614..9a3e99b`）；备份分支 `backup/pre-phase8-g02-20261009-2105` 已推送 |
+| Phase 8 第 3–10 组 | ✅ 已推送（`c131006..27ddb00`）；备份分支 `backup/pre-phase8-g03-10-20261009-2012` 已推送 |
 
 ## Working Tree
 
