@@ -250,7 +250,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `dda1ae9`（Phase 7 收工） |
-| Phase 8 提交 | `8f58ec2`（第 1 组结果 + 两处规格缺口修复） |
+| Phase 8 提交 | `8f58ec2`（第 1 组结果 + 两处规格缺口修复）、`9a3e99b`（第 2 组结果 + F8-7 规格错误修复） |
 | 远端分支 | `main` + 七个 backup 分支（见下） |
 | remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -280,6 +280,8 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `646a5c6` | Phase 7 主体：实现交付层（`renderMarkdown` + 复制/下载按钮 + 三级复制链路）；测试载体重构为通用提取器 |
 | `dda1ae9` | Phase 7 补记：提交号与推送状态 |
 | `8f58ec2` | **Phase 8 第 1 组**：真实语料暴露的两处规格缺口修复（括号插入语、时段词+冒号时刻），377 passed |
+| `b83b614` | Phase 8 第 1 组补记：提交号与备份分支 |
+| `9a3e99b` | **Phase 8 第 2 组**：F8-7 规格错误修复（日期段自带的约定时刻吞掉显式时间点），381 passed |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
@@ -292,7 +294,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 
 ```
 To https://github.com/ayer-TANG/zhaiwu.git
-   787a6e7..646a5c6  main -> main
+   b83b614..9a3e99b  main -> main
 ```
 
 | 阶段 | 推送状态 |
@@ -300,6 +302,8 @@ To https://github.com/ayer-TANG/zhaiwu.git
 | Phase 5 | ✅ 已推送（`45d4d2d..e6599cd` 之前的那次 `e6599cd`） |
 | Phase 6 | ✅ 已推送（`42dc887..5fe892f`），**改名后第一次推送**，远端回显已是新地址 `zhaiwu` |
 | Phase 7 | ✅ 已推送（`787a6e7..646a5c6`） |
+| Phase 8 第 1 组 | ✅ 已推送（`dda1ae9..b83b614`） |
+| Phase 8 第 2 组 | ✅ 已推送（`b83b614..9a3e99b`）；备份分支 `backup/pre-phase8-g02-20261009-2105` 已推送 |
 
 ## Working Tree
 
