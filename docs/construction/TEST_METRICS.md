@@ -24,7 +24,7 @@
 
 | 检查 | 载体 | 建立于 | 覆盖范围 |
 |---|---|---|---|
-| 领域层单元测试 | `node --test tests/` | Phase 4 | `timeParser` 全部支持表达 + 边界 |
+| 领域层单元测试 | `node --test tests/` | Phase 4 | `timeParser` —— `SUPPORTED_EXPRESSIONS.md` 第 1 节**每一条**表达 + 边界 |
 | 领域层单元测试 | 同上 | Phase 5 | `taskExtractor` 正/反用例；`sorter` 排序与分组 |
 | 交付层单元测试 | 同上 | Phase 7 | `renderMarkdown` 纯函数输出 |
 | 格式检查 | `git diff --check` | 每轮 | 空白字符错误 |
@@ -47,7 +47,14 @@
 | 3 | 闲话不干扰；误检可一键删除 | 统计误检条数，验证每条都能一键删除 | Phase 8 |
 
 **关于第 2 条的诚实说明**：若把清单外的表达也计入分母，正确率必然低于 80%。
-因此必须先有「支持表达清单」（Phase 3 产出），度量才有意义。这一点不得在执行时含糊。
+因此必须先有「支持表达清单」，度量才有意义。该清单已于 Phase 3 产出，
+见 `docs/construction/SUPPORTED_EXPRESSIONS.md`。度量时必须先分类再计算，不得含糊。
+
+### 清单的可执行性要求
+
+`SUPPORTED_EXPRESSIONS.md` 第 1 节中的**每一条**表达都必须能直接转成一条测试用例。
+这是 Phase 3 的验收标准，也是 Phase 4 的输入。若发现某条表达写成用例时有歧义，
+说明清单本身需要修改——**先改清单，再写测试**。
 
 ## 测试用例设计原则
 

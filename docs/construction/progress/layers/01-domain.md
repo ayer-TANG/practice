@@ -4,7 +4,14 @@
 
 ## 状态
 
-**不存在。** 计划在 Phase 4–5 实现。
+**实现不存在**，但**规格已于 Phase 3 冻结**。
+
+计划在 Phase 4（`timeParser`）与 Phase 5（`taskExtractor` + `sorter`）实现。
+
+> **实现前必读** `docs/construction/SUPPORTED_EXPRESSIONS.md`。
+> 它是本层的规格来源：支持哪些表达、约定映射到什么时刻、组合上限是什么、
+> 哪些明确不支持。**不得凭感觉写规则**——清单外的表达就是不该支持的，
+> 加进去会让成功标准 2 的分母失控。
 
 ## 职责
 

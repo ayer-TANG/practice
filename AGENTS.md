@@ -38,11 +38,13 @@
 - 如实报告状态（Complete / Partially complete / Blocked）
 
 ## Current Phase
-Phase 2 部分完成：backup 分支已建并推送、skill 目录已忽略、换行符策略已统一。
-**未完成**：仓库改名 `practice` → `zhaiwu`（本机无 `gh` CLI，需用户在网页端执行，见 `GITHUB_ROLLBACK.md` 的 Rename Queue）。
+Phase 3 完成：`SUPPORTED_EXPRESSIONS.md` 已产出，OD-001 已关闭（D-009）。**仍无应用代码。**
 
-下一步：用户在网页端完成仓库改名 → agent 执行 `git remote set-url` 并更新文档引用
-→ Phase 3（支持表达清单与 OD-001 关闭）。
+Phase 2 仍有一项挂起：仓库改名 `practice` → `zhaiwu`（本机无 `gh` CLI，需用户在网页端执行，
+见 `GITHUB_ROLLBACK.md` 的 Rename Queue）。**它不阻塞后续阶段。**
+
+下一步：Phase 4（领域层 `timeParser` + 建立 `node --test` 测试载体）。
+写代码前先读 `SUPPORTED_EXPRESSIONS.md`——它是实现的规格来源，不得凭感觉写规则。
 
 > 阶段编号以 `docs/construction/CONSTRUCTION_PLAN.md` 为准。它与 skill
 > `idea-to-production-vibecoding` 自身的 Phase 编号**不一致**，引用时不要混淆。

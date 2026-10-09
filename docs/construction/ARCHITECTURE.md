@@ -84,12 +84,17 @@ Task {
   id:        string        // 会话内唯一，用于删除与渲染
   text:      string        // 要做的事
   deadline:  Date | null   // 截止时间；解析不出为 null
+  fuzzy:     boolean       // 截止时间来自约定映射（如"尽快"），而非字面表达
   source:    'rule' | 'manual'
   raw:       string        // 来源原句，用于核对
 }
 ```
 
 紧急度不是字段，由 `deadline` 派生。这是刻意的——D-004 决定了紧急度只有时间一个维度。
+
+`fuzzy` 字段的存在理由见 `SUPPORTED_EXPRESSIONS.md` 第 1.E 节：像「尽快」这类
+紧迫词被**约定映射**为 today 23:59，而不是字面时间。UI 必须据此标注，
+否则用户会误以为那是对方说的明确时间。这是诚实性要求，不是装饰。
 
 ## File and Storage Flow
 
@@ -117,7 +122,10 @@ Task {
   - `sorter`：排序正确性 + 无截止时间的分组与位置
 - UI 层与交付层：本版不做自动化测试，人工验证。这一点必须诚实记录在 `TEST_METRICS.md`。
 
-### Open Decision OD-001：单文件与可测试性的冲突
+### Decision D-009：OD-001 —— 单文件与可测试性的冲突（**已关闭**）
+
+> 关闭于 2026-10-09（Phase 3），由 Claude 决策并记录，用户可推翻。
+> 决策编号 D-009，见 `PRODUCT_REQUIREMENTS.md` 的 Decision Log。
 
 **冲突**：测试需要 Node `import` 领域层代码；而 D-003 要求交付物是单个自包含 `index.html`。
 若领域代码内联在 `<script>` 里，Node 无法直接引用它。
@@ -130,8 +138,41 @@ classic script（`<script src="app.js">`）在 `file://` 下可以加载。
 | **(a) 真单文件 + VM 提取测试**（推荐） | 严格 1 个 `index.html` | Node 读 `index.html`，用 `node:vm` 提取内联 `<script>` 内容并求值，断言领域层命名空间 | 测试引导代码约 15–20 行，稍 hacky；但永不随产品发布 |
 | (b) `index.html` + `app.js`（classic script） | 2 个文件 | Node 直接 `require`/读 `app.js` | 破除"物理单文件"，需修改已签字决策 D-003 |
 
-**推荐 (a)**：保住 D-003，且 hackiness 只存在于测试工具中。
-**但本决策未关闭**，Phase 3 开始前必须由用户确认。在关闭之前不得写 `index.html`。
+**决策：采用 (a) 真单文件 + VM 提取测试。**
+
+理由（按权重排序）：
+
+1. **`file://` 下的健壮性。**「双击即用」是产品的硬要求（D-003）。
+   单一 HTML 文件内联全部代码，运行时**零跨文件加载**，在 `file://` 下不遇到任何
+   加载策略限制。方案 (b) 依赖浏览器允许 `file://` 页面加载同目录 classic script ——
+   这一点各浏览器版本行为不一，**我无法在当前环境验证**。
+   把产品可用性押在一个未验证的浏览器行为上，不如选一个必然可行的方案。
+2. **保住已签字的 D-003。** 用户两次明确选择「单个自包含 `index.html`」。
+   方案 (b) 需要修改已签字决策，而收益只是「测试代码好看一点」。
+3. **被测试的代码就是交付的代码。** 方案 (a) 中测试的，是从 `index.html` 里提取出的
+   那段**原文**，不存在「源文件已改、交付文件忘了同步」的风险。
+
+**具体做法：**
+
+- 领域层代码内联在 `index.html` 中一个带稳定标记的 `<script id="zhaiwu-domain">` 块内
+- 该块末尾把命名空间挂到 `globalThis`，使宿主能取到：
+  `globalThis.__zhaiwuDomain = { parse, timeParser, taskExtractor, sorter }`
+  （在浏览器里这只是一个无害的全局变量）
+- 测试引导 `tests/load-domain.mjs`：读 `index.html` → 正则提取
+  `<script id="zhaiwu-domain">` 正文 → `vm.runInNewContext` 求值 →
+  从上下文取 `__zhaiwuDomain`
+- 引导代码约 15–20 行，**只存在于 `tests/`，不随产品发布**
+
+**被否决的备选：**
+
+| 备选 | 否决理由 |
+|---|---|
+| (b) `index.html` + `app.js`（classic script） | 测试更"标准"，但把「双击即用」押在未验证的 `file://` 跨文件加载行为上，且需修改 D-003 |
+| 浏览器内自测页（`?test=1`） | 保住单文件，但测试无法在命令行运行，需人工开浏览器看结果 |
+| 引入构建步骤（拆分源文件再打包进 HTML） | 直接违反零构建原则 |
+
+**推翻成本：** 若将来要改回 (b)，需把内联 script 移到独立文件、改写 `<script>` 标签、
+重写测试引导。约半小时工作量，属可逆。
 
 ## Future Extension Points
 
@@ -151,4 +192,4 @@ classic script（`<script src="app.js">`）在 `file://` 下可以加载。
 | 规则库膨胀，单文件难维护 | 规则数据化（时间词表、动作词表做成数据表 + 解析函数），不写成一堆 if |
 | 中文相对时间表达组合爆炸（「下下周三下午两点半前」） | Phase 3 必须产出「支持表达清单」，明确列出支持与不支持的范围 |
 | 纯规则召回不可预期 | A-001 / A-004，无法靠设计消除，只能靠真实数据验证 |
-| 单文件与可测试性冲突 | OD-001，Phase 3 前关闭 |
+| 单文件与可测试性冲突 | **已关闭** —— D-009，采用真单文件 + VM 提取测试 |

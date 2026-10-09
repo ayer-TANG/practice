@@ -360,3 +360,167 @@ Result: Passed
 1. **用户在 GitHub 网页端执行仓库改名**（R-1）→ 然后 agent 执行 `git remote set-url`（R-2）与文档引用更新（R-3）
 2. Phase 3：产出「支持表达清单」；关闭 OD-001
 3. Phase 4：领域层 `timeParser` + 建立 `node --test` 测试载体
+
+---
+
+## 2026-10-09 18:05 / Phase 3 / Work Log
+
+### Plan Replay
+
+按 `DEV_PROGRESS.md` 的 Phase 3 start plan 执行。本阶段是**规格阶段**，产出能力边界清单
+并关闭 OD-001。**未写任何实现代码。**
+
+### Actual Changes
+
+**1. 新增 `docs/construction/SUPPORTED_EXPRESSIONS.md`** —— 本阶段主交付物
+
+内容分七节：
+
+| 节 | 内容 |
+|---|---|
+| 0 | 解析语义约定：基准时间、时间粒度→具体时刻、周的定义、一句话多时间取最左 |
+| 1 | **支持的时间表达**（69 条）：绝对日期、时间点、期限后缀、相对期限、紧迫词约定映射 |
+| 2 | **明确不支持**（28 条）：双重相对星期、模糊区间、迟滞词、过去的表达、农历节日、月份时长、时段词单用、精确到秒 |
+| 3 | 组合上限：`[日期段][时间点段][期限后缀段]` 三段各最多一个 |
+| 4 | 动作词表初稿：正向 4 类、反向 23 个词 |
+| 5 | **已知误检风险**：已完成/他人/条件式/否定式/反问——纯规则的固有边界，如实记录 |
+| 6 | 验收方式：分母只计第 1 节 |
+| 7 | 与其他文档的关系 |
+
+**2. 关闭 OD-001 → 记为 D-009：采用「真单文件 + VM 提取测试」**
+
+三项理由（权重序）：
+1. `file://` 下的健壮性——单一 HTML 内联全部代码则**零跨文件加载**，必然可用；
+   备选方案 (b) 把「双击即用」押在「浏览器允许 `file://` 页面加载同目录 classic script」
+   这一**我无法在当前环境验证**的行为上
+2. 保住已签字的 D-003，不改动用户两次确认过的决策
+3. 被测试的代码就是从 `index.html` 提取的原文，不存在源文件与交付文件不同步的风险
+
+具体做法（已写入 `ARCHITECTURE.md`）：领域层内联在 `<script id="zhaiwu-domain">`，
+末尾挂 `globalThis.__zhaiwuDomain`；测试引导 `tests/load-domain.mjs` 提取该块正文
+并在 `node:vm` 中求值。引导代码只存在于测试目录，不随产品发布。
+
+**3. 新增 D-010：「尽快/马上/抓紧」类紧迫词约定映射为 today 23:59 并标 `fuzzy`**
+
+`Task` 因此新增 `fuzzy: boolean` 字段。理由是 D-004 定下紧急度只有时间一维，
+若把「尽快」归为「无截止时间」，它会排到列表最末——与直觉相反。
+映射保留紧迫性又不发明具体时刻，且 UI 必须标注（如「尽快（按今天算）」），
+不能让用户误以为那是对方说的明确时间。
+
+**4. 同步更新 8 份文档** —— `AGENTS.md`、`ARCHITECTURE.md`、`CONSTRUCTION_PLAN.md`、
+`DEV_PROGRESS.md`、`TEST_METRICS.md`、`PRODUCT_REQUIREMENTS.md`、`progress/layers/` 三份。
+
+### Files Changed
+
+```
+A  docs/construction/SUPPORTED_EXPRESSIONS.md
+M  AGENTS.md
+M  docs/construction/ARCHITECTURE.md
+M  docs/construction/CONSTRUCTION_PLAN.md
+M  docs/construction/DEV_PROGRESS.md
+M  docs/construction/TEST_METRICS.md
+M  docs/construction/HANDOFF.md
+M  docs/construction/LOG.md
+M  docs/product/PRODUCT_REQUIREMENTS.md
+M  docs/construction/progress/layers/00-foundation.md
+M  docs/construction/progress/layers/01-domain.md
+M  docs/construction/progress/layers/02-ui.md
+```
+
+### Test Log
+
+无代码，测试基线保持 `Not established`。**不得记为 Passed。**
+
+**Check 1 — 支持清单的可执行性（可转成测试用例）**
+
+Result: Passed。第 1 节 69 条表达，每条都给出了确定的解析结果
+（具体时刻或明确的计算规则如「today+7Xd 23:59」），可直接转成断言。
+
+**Check 2 — 支持/不支持清单的互斥性**
+
+Result: **首次 Failed → 已修正 → 重测 Passed**，见 Failures。
+
+**Check 3 — 文档交叉引用完整性**
+
+Result: Passed。除 `LOG.md` 中记录修复历史的那处文字外，无缺失引用。
+
+**Check 4 — `git diff --check`**
+
+Result: Passed，无空白字符错误，无 CRLF 警告。
+
+### Failures
+
+#### Test Attempt 1 — 互斥性检查
+
+Command: 提取第 1 节与第 2 节的反引号词，求交集
+
+Result: Failed
+
+Summary: 检出 3 个交集词（`上午`、`下午`、`晚上`）。
+
+**分析**：这是**检查器的误报**，不是文档矛盾——这三个词在第 1 节只出现在一句
+「这类时段词**单独出现时不算时间**」的否定说明里，语义上与第 2 节一致。
+
+**但仍决定修改文档**：该写法把"不支持的表达"混排进了"支持"一节，
+一个照着清单写测试的人（或 agent）很可能误读为"支持单独的时段词"。
+检查器虽然粗糙，它指出的歧义是真实的。
+
+#### Fix
+
+Files: `docs/construction/SUPPORTED_EXPRESSIONS.md`
+
+Reason: 把第 1 节的否定说明改写为不出现裸时段词的形式，
+明确指向第 2 节「时段词单用」，使"支持"一节只包含真正支持的表达。
+
+#### Retest
+
+Command: 同 Check 2
+
+Result: Passed —— 支持 69 条、不支持 28 条、**交集 0**。
+
+### Documentation Drift
+
+**修掉的漂移：**
+
+1. `ARCHITECTURE.md` 的 Open Decision 标题与「但本决策未关闭」段落 —— 已改为 D-009 决策记录
+2. `ARCHITECTURE.md` 风险表中的「OD-001，Phase 3 前关闭」—— 已改为「已关闭」
+3. `PRODUCT_REQUIREMENTS.md` 的 Open Decisions 表 —— OD-001 标为已关闭；核心对象表补 `fuzzy` 字段
+4. `PRODUCT_REQUIREMENTS.md` 成功标准 2 —— 由"由 Phase 3 产出"改为指向具体文件
+5. `AGENTS.md` Current Phase —— 由 Phase 2 更新为 Phase 3
+6. `CONSTRUCTION_PLAN.md` Phase 3 状态 —— ⬜ → ✅ 并注明产出物
+7. `02-ui.md` —— OD-001 风险行改为已关闭，并补充"模糊时间必须标注"这一新风险
+8. `01-domain.md` —— 补上规格已冻结的说明与"实现前必读"警告
+9. `00-foundation.md` —— 已完成清单补 Phase 2/3 产出
+
+**记录但未处理的漂移：**
+
+10. 仓库 URL 仍为 `practice`。改名（R-1）仍未执行——
+    `git ls-remote https://github.com/ayer-TANG/zhaiwu.git` 返回 `Repository not found`，
+    `gh` 仍不可用。文档继续与事实保持一致，未提前改成 `zhaiwu`。
+
+### Git Status
+
+- 分支 `main`，baseline `8eca9a5`
+- 未新建 backup 分支：Phase 3 处于 `backup/pre-phase2-repo-setup-20261009-1745`
+  的覆盖范围内（该分支按设计是 Phase 3–9 全程回滚点），非跳过
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+
+### Rollback Judgment
+
+无需回滚。本阶段只新增/修改文档，未触碰代码。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| 清单可能过宽或过窄 | 69 条支持表达是基于我对中文聊天习惯的判断，**未经真实语料验证**。Phase 8 用真实数据核对后可能需增删。这是 A-001 的一部分 |
+| 「尽快」映射是可辩论的 | D-010 把「尽快」定为今天 23:59。若用户实际期望它只是"尽快、别拖"，这个映射会误导。`fuzzy` 标记是缓解，不是解决 |
+| 动作词表仅初稿 | 23 个反向词、4 类正向词，Phase 5 实现时必须扩充 |
+
+### Next Step
+
+1. **Phase 4**：领域层 `timeParser` + 建立 `node --test` 测试载体。
+   按 `SUPPORTED_EXPRESSIONS.md` 第 1 节的 69 条逐条写用例，另加边界（跨月、跨年、
+   今天已过的时间点、闰年）
+2. 用户完成仓库改名（R-1），随时可插入执行 R-2/R-3
+3. Phase 5：`taskExtractor` + `sorter`

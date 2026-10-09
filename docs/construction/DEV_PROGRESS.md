@@ -158,3 +158,88 @@ docs/construction/progress/layers/00-foundation.md  更新
 - 仓库改名之外的其他 GitHub 设置变更（可见性、描述、topics 等）
 - 修改 `idea-to-production-vibecoding-main/` 的内容
 - 建立 CI/CD
+
+---
+
+## 2026-10-09 18:05 / Phase 3 / Start Plan
+
+### Objective
+
+在写解析器之前定死"支持什么、不支持什么"，并关闭 OD-001。
+本阶段是**规格阶段**，不写任何实现代码。
+
+产出：
+
+1. `docs/construction/SUPPORTED_EXPRESSIONS.md` —— 时间表达 + 动作词的
+   支持清单与**明确不支持清单**，含每条表达对应的解析结果约定
+2. 关闭 **OD-001**（单文件 vs 可测试性）
+3. 修正因此产生的文档漂移
+
+### Affected Layers
+
+- 领域层（`progress/layers/01-domain.md`）—— 规格已定，实现仍不存在
+- 基础层（`progress/layers/00-foundation.md`）—— 文档新增与状态更新
+- UI 层（`progress/layers/02-ui.md`）—— OD-001 关闭后其结构约束确定
+
+### Repository State
+
+- 分支 `main`，HEAD `8eca9a5`，与 `origin/main` 一致
+- 工作树干净（Phase 2 之后 skill 目录已被忽略）
+- 测试基线 `Not established`
+- **仓库改名仍未执行**：`git ls-remote https://github.com/ayer-TANG/zhaiwu.git`
+  返回 `Repository not found`；`gh` 仍不可用。改名不阻塞本阶段
+- 远端回滚点已存在
+
+### Planned Files
+
+```
+docs/construction/SUPPORTED_EXPRESSIONS.md   新增（本阶段主交付物）
+docs/construction/ARCHITECTURE.md            OD-001 关闭；Task 增加 fuzzy 字段
+docs/product/PRODUCT_REQUIREMENTS.md         决策日志 D-009；Open Decisions 关闭
+docs/construction/CONSTRUCTION_PLAN.md       Phase 3 状态
+docs/construction/TEST_METRICS.md            引用支持清单作为验收依据
+docs/construction/DEV_PROGRESS.md            追加本条目
+docs/construction/LOG.md                     追加工作日志
+docs/construction/HANDOFF.md                 更新接力状态
+AGENTS.md                                    Current Phase
+docs/construction/progress/layers/00-foundation.md、01-domain.md、02-ui.md
+```
+
+### Tests
+
+无代码，测试基线保持 `Not established`。替代验证项：
+
+1. 支持清单中**每一条**表达都能直接转成一条测试用例（可执行性检查）
+2. 清单中不存在"既在支持列表又在不支持列表"的条目（互斥性检查）
+3. 文档交叉引用完整
+4. `git diff --check`
+
+### Git Baseline
+
+`8eca9a5`
+
+### Backup Branch
+
+**不新建。** Phase 3 只产出文档，且 `GITHUB_ROLLBACK.md` 已将
+`backup/pre-phase2-repo-setup-20261009-1745` 指定为 **Phase 3–9 全程的回滚点**。
+本阶段处于该分支的覆盖范围内，不是跳过——这是被设计覆盖的。
+
+### Rollback Plan
+
+`git revert <Phase 3 提交>`。
+
+### Acceptance Criteria
+
+1. 支持清单可逐条转成测试用例，无歧义
+2. 不支持清单明确列出边界及理由，且不计入成功标准 2 的分母
+3. OD-001 已关闭，决策理由与备选方案记录在案
+4. 文档间无矛盾
+
+### Explicit Exclusions
+
+- **任何解析器实现代码**（`timeParser`、`taskExtractor`、`sorter` 一律不写）
+- 任何 `index.html`
+- 任何测试文件（只产出规格，不产出用例代码）
+- 建立测试载体（Phase 4）
+- 真实数据验证（Phase 8）
+- 仓库改名（仍挂起，不属本阶段）

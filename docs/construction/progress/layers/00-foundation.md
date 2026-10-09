@@ -4,7 +4,7 @@
 
 ## 状态
 
-**已完成**（Phase 1，2026-10-09）
+**已完成**（Phase 1 建立，Phase 2–3 增补；2026-10-09）
 
 ## 职责
 
@@ -24,6 +24,9 @@
 - 测试基线：`TEST_METRICS.md`
 - 进度与接力：`DEV_PROGRESS.md`、`LOG.md`、`HANDOFF.md`
 - `README.md` 修正漂移（原自述为"练习代码仓库"）
+- **远端回滚点**：`backup/pre-phase2-repo-setup-20261009-1745` → `9d693c1`（Phase 3–9 全程）
+- `.gitignore` 忽略 `idea-to-production-vibecoding-main/`；`.gitattributes` 统一换行符为 LF
+- **能力边界规格**：`SUPPORTED_EXPRESSIONS.md`（支持/不支持清单、组合上限、误检风险、验收方式）
 
 ## 未完成
 
