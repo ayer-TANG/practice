@@ -299,7 +299,15 @@ Phase 5
 
 ---
 
-## Phase 7: 交付层 — 复制 / 下载 .md ⬜
+## Phase 7: 交付层 — 复制 / 下载 .md ✅
+
+> 产出：`index.html` 新增 `<script id="zhaiwu-delivery">` 块（`renderMarkdown` 纯函数），
+> UI 层加复制/下载按钮与三级复制链路；`tests/` 新增 `load-block.mjs`（公共提取器）、
+> `load-delivery.mjs`、`delivery.test.mjs`，并重构 `load-domain.mjs` 复用提取器
+> （对外导出不变，既有测试一行未改）。
+> `node --test` → **368 passed / 0 failed**（Phase 6 为 315）。
+> 渲染与导出链路用一次性 DOM 桩验证（11 组 41 项）；
+> **浏览器中的剪贴板与下载行为未验证**，仍为 `Not established`。
 
 ### Goal
 让结果能离开网页。
@@ -317,13 +325,16 @@ Phase 5
 Phase 6
 
 ### Tests
-`renderMarkdown` 的纯函数测试；复制/下载人工验证
+`renderMarkdown` 的纯函数测试（53 条）；复制/下载**人工验证**
 
 ### Acceptance Criteria
 生成的 Markdown 可读、包含截止时间与分组；复制与下载在 Chrome/Edge 均可用。
+**验收状态：Markdown 生成已由测试覆盖；剪贴板与下载 `Not established`**——
+本机无法启动浏览器。三级复制链路（API → `execCommand` → 手动提示）已实现，
+但**哪一级会在真实浏览器里生效仍未验证**。
 
 ### Rollback Point
-Phase 2 的 backup 分支
+`backup/pre-phase7-delivery-20261009-2010` → `787a6e7`（写第一行交付层代码之前）
 
 ---
 

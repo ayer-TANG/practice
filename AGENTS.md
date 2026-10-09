@@ -39,22 +39,32 @@
 - 如实报告状态（Complete / Partially complete / Blocked）
 
 ## Current Phase
-Phase 6 完成：**UI 层已实现**，领域层未改动（`node --test` → **315 passed**）。
-`index.html` 现在可双击打开并实际使用：粘贴 → 抽取 → 分组结果 → 手动补漏 → 删除误检。
+Phase 7 完成：**交付层已实现**，领域层与 UI 层未改动
+（`node --test` → **368 passed**，领域层 315 + 交付层 53）。
+`index.html` 现在可双击打开并走完整条路径：粘贴 → 抽取 → 分组结果 →
+手动补漏 → 删除误检 → 复制/下载成 Markdown。
 
-**但浏览器中的真实行为未验证**（本机无法启动浏览器）。渲染与状态用一次性 DOM 桩
-验证过（9 组 30 项全通过，脚本有意不进仓库），两者不是一回事。
-手动验证清单在 `docs/construction/progress/layers/02-ui.md`，需用户执行并记入 `LOG.md`。
+**但三处未闭合项不要当成已完成：**
+1. **浏览器中的真实行为未验证**（本机无法启动浏览器）。渲染、状态与导出链路
+   用一次性 DOM 桩验证过（11 组 41 项全通过，脚本有意不进仓库），两者不是一回事。
+2. **`file://` 下剪贴板能不能用，不知道。** 三级链路（`clipboard API` → `execCommand`
+   → 手动提示）都实现了，但哪一级生效没实测。详见 `progress/layers/03-delivery.md`。
+3. **产品没用真实数据验证过**，成功标准 1/2/3 一次都没度量。
+
+手动验证清单在 `docs/construction/progress/layers/02-ui.md` 与 `03-delivery.md`，
+需用户执行并记入 `LOG.md`。
 
 仓库改名 `practice` → `zhaiwu` **已完成**（用户于 2026-10-09 在网页端执行 R-1，
 agent 已执行 R-2 与 R-3）。仅剩 R-4（本地目录改名，待 Phase 9，属物理约束）。
 
-下一步：Phase 7（交付层）——`renderMarkdown`、复制到剪贴板、下载 `.md`。
-动手前先读 `LAYER_CONTRACT.md` 的交付层一节：**`renderMarkdown` 是纯函数**，
-不得触碰 DOM；剪贴板与下载才属于 UI 层的活儿。
+下一步：Phase 8（真实数据验收）——**这是第一个需要用户提供真实材料的阶段**。
+需要 10 组真实聊天记录 + 人工标注，用来验证 A-001~A-006、度量成功标准 1/2/3、
+校准 12 个「判断而非数据」的动作词。在此之前 agent 无法独自推进。
 
-**UI 代码不得写进 `<script id="zhaiwu-domain">` 块。** 领域层纯度静态检查只扫描该块，
-混入 UI 代码会让「不出现 document」「不自己读当前时间」两条检查失败。
+**代码不得写错块。** `<script id="zhaiwu-domain">` 的纯度静态检查只扫描该块，
+混入 UI 代码会让「不出现 document」「不自己读当前时间」两条检查失败；
+`clipboard` / `Blob` / `createObjectURL` 不得出现在 `<script id="zhaiwu-delivery">`
+块，那属于 UI 层，`delivery.test.mjs` 里有静态检查锁死。
 
 改动作词表（`SUPPORTED_EXPRESSIONS.md` §4）时必须三处同步：代码、该文档、测试里的数量断言。
 本轮确立的纪律是：**已知误检与已知漏检都写成断言，不写成注释**——

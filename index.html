@@ -114,6 +114,9 @@
   .task-del:hover { background: none; color: var(--danger); }
   .empty { color: var(--muted); font-size: 14px; margin: 0; }
   .empty strong { color: var(--text); }
+  .actions { margin-top: 14px; }
+  /* pointer-events 关掉，否则 :hover 仍会匹配 disabled 按钮，看着像可点 */
+  .actions button:disabled { opacity: .45; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -136,6 +139,11 @@
 
   <section class="panel">
     <div id="results"></div>
+    <div class="row actions">
+      <button id="copy-btn" class="primary" type="button" disabled>复制为 Markdown</button>
+      <button id="download-btn" type="button" disabled>下载 .md</button>
+      <span id="action-hint" class="hint" style="margin:0"></span>
+    </div>
   </section>
 
   <section class="panel">
@@ -795,6 +803,100 @@
 </script>
 
 <!--
+  交付层（Phase 7）
+
+  把 Task[] 渲染成 Markdown。**纯函数**：字符串进、字符串出。
+  不碰 DOM、不碰网络、不读系统时间——它连 now 都不需要。
+
+  这里**不**做复制与下载。那两个动作要碰浏览器 API（剪贴板、Blob），
+  属于 UI 层。本层存在的意义就是把「生成什么」和「怎么送出去」分开：
+  前者可以测试，后者只能人工验证。
+
+  单独一个 script 块的理由同 UI 层：领域层纯度静态检查只扫 zhaiwu-domain。
+-->
+<script id="zhaiwu-delivery">
+(function () {
+  'use strict';
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  // 与 UI 层的 fmtDeadline 是有意的重复，不是疏漏。
+  // 两处的展示需求可能分化（界面要短，Markdown 要完整），
+  // 共用会让两层耦合在一个最容易变的细节上。各 5 行，不值得抽。
+  function fmtDeadline(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  // 转义 Markdown 行内元字符。
+  // 任务文本来自用户粘贴的聊天记录：一条含 [ 的任务会把后续内容全变成链接，
+  // 直接破坏可读性——而「可读」是本阶段的验收标准。
+  // 只转义行内敏感的字符；#、-、+ 这类只在行首才有块级语义，而任务文本
+  // 永远跟在 '- [ ] ' 之后，不在行首。
+  // 转义后渲染出来仍是原文（\* 显示为 *），可读性不降。
+  function escapeMd(s) {
+    return String(s === undefined || s === null ? '' : s)
+      // 换行会把一个列表项截成两行，第二行不再是列表项。
+      // 当前数据流下不该出现（领域层按行切分、手动补漏是单行 input），
+      // 但防御成本只有一次 replace，不值得留这个口子。
+      .replace(/\r?\n/g, ' ')
+      .replace(/[\\`*_[\]]/g, '\\$&');
+  }
+
+  function isTimed(t) {
+    return t.deadline !== null && t.deadline !== undefined;
+  }
+
+  function taskLine(t) {
+    var marks = [];
+    if (t.fuzzy) marks.push('推定');
+    if (t.source === 'manual') marks.push('手动补的');
+    var suffix = marks.length > 0 ? '（' + marks.join(' · ') + '）' : '';
+
+    if (isTimed(t)) {
+      return '- [ ] ' + fmtDeadline(t.deadline) + ' · ' + escapeMd(t.text) + suffix;
+    }
+    return '- [ ] ' + escapeMd(t.text) + suffix;
+  }
+
+  // 分组沿用产品需求规定的二分：有截止时间 / 未识别到时间。
+  // 来源（rule / manual）与 fuzzy 是**行内标记**，不是第三个分组。
+  function renderMarkdown(tasks) {
+    var list = tasks || [];
+    var out = ['# 摘务', ''];
+
+    if (list.length === 0) {
+      out.push('没有任务。');
+      return out.join('\n') + '\n';
+    }
+
+    out.push('共 ' + list.length + ' 条任务。');
+
+    var timed = [], untimed = [];
+    for (var i = 0; i < list.length; i++) {
+      (isTimed(list[i]) ? timed : untimed).push(list[i]);
+    }
+
+    if (timed.length > 0) {
+      out.push('', '## 有截止时间（' + timed.length + '）', '');
+      for (var j = 0; j < timed.length; j++) out.push(taskLine(timed[j]));
+    }
+    if (untimed.length > 0) {
+      out.push('', '## 未识别到时间（' + untimed.length + '）', '');
+      for (var k = 0; k < untimed.length; k++) out.push(taskLine(untimed[k]));
+    }
+
+    return out.join('\n') + '\n';
+  }
+
+  globalThis.__zhaiwuDelivery = {
+    version: 'Phase 7',
+    renderMarkdown: renderMarkdown
+  };
+})();
+</script>
+
+<!--
   UI 层（Phase 6）
 
   依赖方向：UI → 领域层（见 LAYER_CONTRACT.md）。
@@ -821,6 +923,16 @@
   var manualInput = document.getElementById('manual-input');
   var addBtn = document.getElementById('add-btn');
   var hintEl = document.getElementById('hint');
+  var copyBtn = document.getElementById('copy-btn');
+  var downloadBtn = document.getElementById('download-btn');
+  var actionHint = document.getElementById('action-hint');
+
+  // 交付层缺失只影响「导出」，不影响筛选本身，所以降级而不是整体停摆。
+  var delivery = globalThis.__zhaiwuDelivery;
+  var hasDelivery = !!(delivery && typeof delivery.renderMarkdown === 'function');
+  if (!hasDelivery) {
+    copyBtn.title = downloadBtn.title = '交付层未加载，导出不可用';
+  }
 
   var ruleTasks = [];      // 最近一次「抽取」的结果
   var manualTasks = [];    // 手动补的条目，跨抽取保留
@@ -900,7 +1012,11 @@
   function render() {
     resultsEl.textContent = '';
 
-    if (tasks.length === 0) {
+    var empty = tasks.length === 0;
+    copyBtn.disabled = empty || !hasDelivery;
+    downloadBtn.disabled = empty || !hasDelivery;
+
+    if (empty) {
       var p = document.createElement('p');
       p.className = 'empty';
       if (hasExtracted) {
@@ -974,10 +1090,82 @@
     manualInput.focus();
   }
 
+  // ---- 导出（复制 / 下载）---------------------------------------------------
+
+  function flashAction(msg) {
+    actionHint.textContent = msg;
+    setTimeout(function () { actionHint.textContent = ''; }, 2500);
+  }
+
+  // 老办法：选中一个屏幕外的 textarea 再 execCommand。
+  //
+  // execCommand 已被标记废弃，但它仍是 clipboard API 不可用时的唯一退路——
+  // 而 file:// 下 clipboard API 能不能用，取决于浏览器是否把 file:// 当作
+  // 安全上下文，这一点各家不同。**不能静默失败**，所以留了这一级。
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  var COPY_FAILED = '浏览器拦下了复制，请手动选中结果复制';
+
+  function doCopy() {
+    var text = delivery.renderMarkdown(tasks);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flashAction('已复制到剪贴板'); },
+        // API 存在但被拒（权限、非安全上下文）——退到老办法，再不行就明说
+        function () { flashAction(legacyCopy(text) ? '已复制到剪贴板' : COPY_FAILED); }
+      );
+      return;
+    }
+
+    flashAction(legacyCopy(text) ? '已复制到剪贴板' : COPY_FAILED);
+  }
+
+  function stamp() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  function doDownload() {
+    var blob = new Blob([delivery.renderMarkdown(tasks)],
+      { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '摘务-' + stamp() + '.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 立刻 revoke 有打断下载的可能，推迟释放；不 revoke 则 blob 常驻内存
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    flashAction('已开始下载');
+  }
+
   // ---- 事件 ----------------------------------------------------------------
 
   extractBtn.addEventListener('click', runExtract);
   addBtn.addEventListener('click', addManual);
+  if (hasDelivery) {
+    copyBtn.addEventListener('click', doCopy);
+    downloadBtn.addEventListener('click', doDownload);
+  }
 
   // 粘贴区 Ctrl/Cmd+Enter 直接抽取；补漏框 Enter 直接加入
   chatInput.addEventListener('keydown', function (e) {

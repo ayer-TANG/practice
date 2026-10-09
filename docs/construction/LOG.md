@@ -1018,3 +1018,172 @@ Result:  全部通过（9 组 30 项）
 
 Phase 7 —— 交付层。`renderMarkdown(tasks) => string` 是**纯函数**，不得触碰 DOM；
 剪贴板与下载才属于 UI 层。动手前先读 `LAYER_CONTRACT.md` 的交付层一节。
+
+---
+
+## 2026-10-09 20:10 / Phase 7 / Work Log
+
+### Plan Replay
+
+按 `DEV_PROGRESS.md` 的 start plan 执行：写 `renderMarkdown`、复制、下载。
+
+**先建回滚点再动手**：`backup/pre-phase7-delivery-20261009-2010` → `787a6e7`（已推送）。
+
+### Actual Changes
+
+**`index.html` 新增一块 + 改一处：**
+
+| 项 | 说明 |
+|---|---|
+| `<script id="zhaiwu-delivery">` | 新块。`renderMarkdown(tasks) => string`，挂 `globalThis.__zhaiwuDelivery` |
+| UI 结果面板 | 加两个按钮 + 一个反馈位 `<span id="action-hint">` |
+| UI 脚本 | `doCopy` / `doDownload` / `legacyCopy` / `flashAction` / `stamp`；`render()` 里同步按钮禁用态 |
+| `<style>` | `.actions button:disabled`（含 `pointer-events: none`，否则 `:hover` 仍匹配） |
+
+**测试侧：**
+
+| 文件 | 变化 |
+|---|---|
+| `tests/load-block.mjs` | **新增**：`extractBlock` / `evalBlock` / `toLocal`，D-009 的公共提取器 |
+| `tests/load-domain.mjs` | **重构**：改用公共提取器。对外导出 `domain` / `source` / `toLocal` 一个不少 |
+| `tests/load-delivery.mjs` | **新增**：提取交付层 + 导出守门 |
+| `tests/delivery.test.mjs` | **新增**：53 条用例 |
+
+重构 `load-domain.mjs` 后**先跑了一次 315**，确认没破坏既有测试，才继续写交付层。
+
+### 关键实现决定
+
+**1. `renderMarkdown` 放独立 script 块，不放领域层块。**
+`LAYER_CONTRACT.md` 与 `ARCHITECTURE.md` 都把交付层列为独立一层。
+塞进领域层块会让"领域层"的语义变模糊，也会白白拖慢纯度静态检查的扫描范围。
+
+**2. 分组只有两个，来源与 `fuzzy` 是行内标记。**
+产品需求白纸黑字写着"唯一的分组规则：有截止时间 / 未识别到时间，二分"。
+给 `manual` 单开一个 `##` 分组会直接违反它。测试里有一条断言专门锁死这件事：
+输出里的 `##` 标题数量与内容必须与二分结构一致。
+
+**3. Markdown 元字符要转义。**
+任务文本是用户粘贴的聊天记录。一条含 `[` 的任务在未转义时会把后续内容
+全变成链接文本——直接破坏可读性，而"可读"是本阶段的验收标准。
+只转义行内敏感的 `\ ` `` ` `` `* _ [ ]`；`#`、`-`、`+` 只在行首才有块级语义，
+而任务文本永远跟在 `- [ ] ` 之后，不在行首。转义后渲染出来仍是原文，可读性不降。
+
+**4. 复制是三级链路，不是一级。**
+`navigator.clipboard` → `execCommand` 回退 → 明说"请手动选中结果复制"。
+理由：`file://` 下 clipboard API 的可用性取决于浏览器是否把它当安全上下文，
+**各家不同，而本机无法实测**。既然测不了，就不能假设它一定成功——
+**不得静默失败**是硬要求。
+
+**5. `revokeObjectURL` 推迟 1 秒。**
+立刻 revoke 有打断下载的可能；不 revoke 则 blob 常驻内存。
+折中是 `setTimeout(..., 1000)`。
+
+**6. `fmtDeadline` 在两层各留一份，是有意的。**
+两处展示需求可能分化（界面要短、Markdown 要完整）。共用会让 UI 层与交付层
+耦合在一个最容易变的细节上，各 5 行不值得抽。代码里写了注释说明这是有意重复，
+避免接手的人当成疏漏去"修"。
+
+### Test Attempts
+
+#### Test Attempt 1
+
+```
+Command: node --test
+Result:  Failed —— 2 项（1 个真实失败 + 其父 suite）
+Summary: 交付层 · 转义 › 未转义时一条含 [ 的任务会吃掉后续内容
+         AssertionError: 转义后不应再以裸 [ 开头
+```
+
+**是我的测试写错了，不是实现缺陷。**
+
+我在同一个用例里放了两条互相矛盾的断言：
+
+```js
+assert.ok(md.includes('[链接'));        // 要求输出含裸 [
+assert.ok(!md.includes('\\[链接'));     // 又要求它不含 \[ —— 自相矛盾
+```
+
+实现的行为是正确的（它确实把 `[` 转义成了 `\[`），第二条断言必然失败。
+起因是我想在一个用例里同时表达"转义前会怎样"和"转义后是什么"，
+结果把两个意图揉成了一段自相矛盾的话。
+
+#### Fix
+
+| 文件 | 改动 |
+|---|---|
+| `tests/delivery.test.mjs` | 拆掉矛盾断言，只断言转义后的形态：用例改名「含 [ 的任务被转义——未闭合的括号会吞掉后续文本」，断言 `md.includes('\\[链接')` |
+
+#### Retest
+
+```
+Command: node --test
+Result:  365 passed / 0 failed
+```
+
+> 此后为补「换行 / CRLF / `|`」三个边界又加了 3 条用例（写 `03-delivery.md` 时
+> 发现它的边界清单里有"换行"，而当时的实现没处理）。**最终基线是 368**，
+> 见下方 Verification。这里的 365 是当时的真实观察，不改写。
+
+#### UI 探针（一次性，不进仓库）
+
+Phase 6 的 DOM 桩扩展后重跑，覆盖渲染回归 + 导出链路，**11 组 41 项全通过**：
+
+- 按钮禁用态随列表空/非空切换
+- 复制内容与 `renderMarkdown` 一致（把实际输出打印出来人工核对过）
+- `clipboard` 被拒 → 确实走到了 `execCommand`
+- `clipboard` 不存在 → 直接走 `execCommand`
+- 两级都失败 → 提示文案含"手动选中"（**不静默**）
+- 下载：MIME、内容、文件名 `摘务-YYYY-MM-DD.md`、临时节点已移除、URL 推迟释放
+- 空列表时按钮禁用
+
+**过程中修了一处桩的时序问题**：`clipboard.writeText` 返回 Promise，
+反馈在 `.then` 里设置，同步断言时还没跑。桩里加了一个微任务等待。
+这同样是**桩的问题**，不是实现缺陷——真实浏览器里这个延迟用户感知不到。
+
+### Verification
+
+- **`node --test` → 368 passed / 0 failed**（315 基线未倒退）
+- 领域层纯度静态检查仍通过（领域层一行未改）
+- 交付层新增 8 条纯度静态检查：无 DOM / 无网络 / 无存储 / 不自读时间 /
+  **无剪贴板、无 Blob、无 createObjectURL**（那三个属于 UI 层）
+- 单文件约束保持：无外部 script/link/字体/网络请求
+- 全部语料自行编造 —— **无真实聊天记录进入仓库**
+- 未实现任何未来阶段的功能（无持久化、无第三方推送、无其他导出格式）
+- 无密钥
+- **浏览器真实行为：`Not established`** —— 本机无法启动浏览器
+
+### Git Status
+
+- 分支 `main`，baseline `787a6e7`
+- backup 分支 `backup/pre-phase7-delivery-20261009-2010` → `787a6e7`（已推送）
+- 本阶段提交与推送状态：见 `HANDOFF.md`
+
+### Rollback Judgment
+
+本阶段改动集中在三处：`index.html` 新增交付层块 + UI 层追加导出逻辑、
+`tests/` 新增三个文件与一次重构。
+
+**注意**：回滚本阶段必须**连 `load-domain.mjs` 的重构一起回滚**——
+它现在 import 了 `load-block.mjs`，单独回滚会留下悬空 import。
+两者在本阶段同一个提交里，`git revert <Phase 7 提交>` 能一次处理干净。
+
+若要回滚：`git revert <Phase 7 提交>`，或回到
+`backup/pre-phase7-delivery-20261009-2010`。
+
+### Risks
+
+| 风险 | 说明 |
+|---|---|
+| **`file://` 下剪贴板可用性未实测** | 三级链路都写了，但**哪一级会在真实浏览器里生效，不知道**。若 clipboard API 与 execCommand 双双失效，用户会看到"请手动选中"——功能可用但体验降级。**这是本阶段最大的未闭合项** |
+| **下载未实测** | `createObjectURL` 在 `file://` 下通常可用，但未验证。文件名含中文，个别浏览器/系统可能有编码问题 |
+| **转义只覆盖行内元字符** | 行首敏感的 `#`、`-`、`>` 没转义。当前输出形态下任务文本永远不在行首，所以安全；但若将来改输出格式（比如去掉 `- [ ] ` 前缀），这个前提就失效了。测试里有断言锁定当前前提 |
+| **`fmtDeadline` 两处重复** | 有意为之，但确实是两处需要同步的地方。若格式变更，两处都要改 |
+| A-001 / A-004 仍未验证 | 与 Phase 6 相同，等 Phase 8 |
+
+### Next Step
+
+Phase 8 —— 真实数据验收。这是**产品能不能成立**的验证阶段：
+用真实聊天记录度量 A-001（真实任务句是否含可识别词）、召回率、
+成功标准 1/2/3，并校准 12 个"判断而非数据"的动作词。
+
+**这是第一个需要用户提供真实材料的阶段。** 在此之前 agent 无法独自推进。
