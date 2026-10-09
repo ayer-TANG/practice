@@ -215,7 +215,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 > ⚠️ **测试命令是 `node --test`，不是 `node --test tests/`。**
 > 后者在 Node 24 下报 `MODULE_NOT_FOUND`——位置参数被当作模块入口，不再做目录发现。
 > Phase 1–3 的文档全部写错了这一点，已在 Phase 4 改正。见 `TEST_METRICS.md`。
-> Phase 7 复测过三种等价的写法：`node --test`、
+> Phase 8 复测过三种等价的写法：`node --test`、
 > `node --test "tests/**/*.test.mjs"`、`node --test tests/*.test.mjs`，
 > 均为 377 passed。
 
@@ -236,9 +236,9 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | 项 | 值 |
 |---|---|
 | 分支 | `main` |
-| Baseline commit | `787a6e7`（Phase 6 收工） |
-| Phase 7 提交 | `646a5c6`（主体） |
-| 远端分支 | `main` + 五个 backup 分支（见下） |
+| Baseline commit | `dda1ae9`（Phase 7 收工） |
+| Phase 8 提交 | `8f58ec2`（第 1 组结果 + 两处规格缺口修复） |
+| 远端分支 | `main` + 六个 backup 分支（见下） |
 | remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
 
@@ -251,8 +251,9 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `backup/pre-phase5-extractor-20261009-1900` | `45d4d2d` | **领域层只有时间解析**时 |
 | `backup/pre-phase6-ui-20261009-1913` | `42dc887` | **写第一行界面代码之前**——产品完全不可用时的最后状态 |
 | `backup/pre-phase7-delivery-20261009-2010` | `787a6e7` | **交付层一行代码都没有之前**——结果出不去网页时的状态 |
+| `backup/pre-phase8-realdata-20261009-1947` | `dda1ae9` | **真实数据验收开始之前**——功能已完整、但未用真实语料验证时的状态 |
 
-**五个都不得删除。** 它们是不同性质的还原点，不是重复。
+**六个都不得删除。** 它们是不同性质的还原点，不是重复。
 
 ## Latest Commit
 
@@ -262,12 +263,14 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `42dc887` | Phase 5 补记：提交号与推送状态；仓库改名收尾（R-2 / R-3） |
 | `5fe892f` | Phase 6 主体：实现 UI 层（样式 + 骨架 + `zhaiwu-ui` 脚本） |
 | `787a6e7` | Phase 6 补记：提交号与推送状态 |
-| `646a5c6` | **Phase 7 主体**：实现交付层（`renderMarkdown` + 复制/下载按钮 + 三级复制链路）；测试载体重构为通用提取器 |
+| `646a5c6` | Phase 7 主体：实现交付层（`renderMarkdown` + 复制/下载按钮 + 三级复制链路）；测试载体重构为通用提取器 |
+| `dda1ae9` | Phase 7 补记：提交号与推送状态 |
+| `8f58ec2` | **Phase 8 第 1 组**：真实语料暴露的两处规格缺口修复（括号插入语、时段词+冒号时刻），377 passed |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
 > Phase 3 是 `3d48ebe`，Phase 4 是 `45d4d2d`，Phase 5 是 `e6599cd`，
-> Phase 6 是 `787a6e7`，Phase 7 见本表的 `646a5c6` 与紧随其后的补记提交。
+> Phase 6 是 `787a6e7`，Phase 7 是 `dda1ae9`，Phase 8 见本表的下一行与紧随其后的补记提交。
 
 ## Push Status
 
