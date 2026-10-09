@@ -292,7 +292,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `dda1ae9`（Phase 7 收工） |
-| Phase 8 提交 | `8f58ec2`（第 1 组结果 + 两处规格缺口修复）、`9a3e99b`（第 2 组结果 + F8-7 规格错误修复）、`27ddb00`（第 3–10 组 + F8-10）、`d42ff84`（F8-6 决策轮）、`e8030a4`（词表补齐轮 F8-9 / F8-15） |
+| Phase 8 提交 | `8f58ec2`（第 1 组结果 + 两处规格缺口修复）、`9a3e99b`（第 2 组结果 + F8-7 规格错误修复）、`27ddb00`（第 3–10 组 + F8-10）、`d42ff84`（F8-6 决策轮）、`e8030a4`（词表补齐轮 F8-9 / F8-15）、`aa4678e`（用户直令的「删除上次粘贴」） |
 | 远端分支 | `main` + 十一个 backup 分支（见下） |
 | remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -333,6 +333,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `83ba9ed` | Phase 8 第 3–10 组补记：提交号与推送状态 |
 | `d42ff84` | **Phase 8 F8-6 决策轮**：规格错误修复（已过的月日不再顺延到下一年）+ 界面「已过期」标记，384 passed |
 | `e8030a4` | **Phase 8 词表补齐轮（F8-9 / F8-15）**：动作词表 56 → 71（补 15 词、7 个多义词刻意不补并附边际数据）、`越快越好` 进 §1.E、首次语料泄漏自查与流程补登，417 passed |
+| `aa4678e` | **Phase 8「删除上次粘贴」轮**：粘贴区加段级退回按钮（用户直令，越出 Phase 8 的 Excluded，五处留记录）、一次性探针 10 组 28 项含变异检验、清掉两处残留的语料泄漏。417 passed，UI 层外一行未动 |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
@@ -348,6 +349,7 @@ To https://github.com/ayer-TANG/zhaiwu.git
    c131006..27ddb00  main -> main
    (F8-6 决策轮) 83ba9ed..d42ff84  main -> main
    (词表补齐轮) f564fb3..e8030a4  main -> main
+   (删除上次粘贴轮) 26bde23..aa4678e  main -> main
 ```
 
 | 阶段 | 推送状态 |
@@ -360,6 +362,7 @@ To https://github.com/ayer-TANG/zhaiwu.git
 | Phase 8 第 3–10 组 | ✅ 已推送（`c131006..27ddb00`）；备份分支 `backup/pre-phase8-g03-10-20261009-2012` 已推送 |
 | Phase 8 F8-6 决策轮 | ✅ 已推送（`83ba9ed..d42ff84`）；备份分支 `backup/pre-phase8-g06-20261009-2015` 已推送 |
 | Phase 8 词表补齐轮 | ✅ 已推送（`f564fb3..e8030a4`）；备份分支 `backup/pre-phase8-g0915-20261009-2023` 已推送 |
+| Phase 8「删除上次粘贴」轮 | ✅ 已推送（`26bde23..aa4678e`）；备份分支 `backup/pre-phase8-undo-paste-20261009-2105` 已推送 |
 
 ## Working Tree
 
