@@ -221,7 +221,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `787a6e7`（Phase 6 收工） |
-| Phase 7 提交 | `⏳ 见下方补记提交`（主体） |
+| Phase 7 提交 | `646a5c6`（主体） |
 | 远端分支 | `main` + 五个 backup 分支（见下） |
 | remote | `https://github.com/ayer-TANG/zhaiwu`（2026-10-09 由 `practice` 改名，见 R-2） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -246,22 +246,27 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `42dc887` | Phase 5 补记：提交号与推送状态；仓库改名收尾（R-2 / R-3） |
 | `5fe892f` | Phase 6 主体：实现 UI 层（样式 + 骨架 + `zhaiwu-ui` 脚本） |
 | `787a6e7` | Phase 6 补记：提交号与推送状态 |
-| `⏳` | **Phase 7 主体**：实现交付层（`renderMarkdown` + 复制/下载按钮 + 三级复制链路）；测试载体重构为通用提取器 |
+| `646a5c6` | **Phase 7 主体**：实现交付层（`renderMarkdown` + 复制/下载按钮 + 三级复制链路）；测试载体重构为通用提取器 |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，
 > Phase 3 是 `3d48ebe`，Phase 4 是 `45d4d2d`，Phase 5 是 `e6599cd`，
-> Phase 6 是 `787a6e7`，Phase 7 见下一个补记提交。
+> Phase 6 是 `787a6e7`，Phase 7 见本表的 `646a5c6` 与紧随其后的补记提交。
 
 ## Push Status
 
-**⏳ 待推送。** Phase 7 主体提交推送后，本表与上表的提交号由补记提交填入。
+**已推送。**
+
+```
+To https://github.com/ayer-TANG/zhaiwu.git
+   787a6e7..646a5c6  main -> main
+```
 
 | 阶段 | 推送状态 |
 |---|---|
-| Phase 5 | ✅ 已推送（`42dc887..5fe892f` 之前的 `e6599cd` 那次） |
+| Phase 5 | ✅ 已推送（`45d4d2d..e6599cd` 之前的那次 `e6599cd`） |
 | Phase 6 | ✅ 已推送（`42dc887..5fe892f`），**改名后第一次推送**，远端回显已是新地址 `zhaiwu` |
-| Phase 7 | ⏳ 待推送 |
+| Phase 7 | ✅ 已推送（`787a6e7..646a5c6`） |
 
 ## Working Tree
 
