@@ -123,7 +123,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 |---|---|
 | 分支 | `main` |
 | Baseline commit | `3d48ebe`（Phase 3 收工） |
-| Phase 4 提交 | 见下方 Latest Commit |
+| Phase 4 提交 | `14afad0`（已推送） |
 | 远端分支 | `main`、`backup/pre-phase2-repo-setup-20261009-1745`、`backup/pre-phase4-timeparser-20261009-1844` |
 | remote | `https://github.com/ayer-TANG/practice`（**待改名 `zhaiwu`**） |
 | Git 身份 | `ayer-TANG <2057075942@qq.com>` |
@@ -145,7 +145,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 | `8eca9a5` | Phase 2 补记：handoff 提交号与推送状态 |
 | `47b50fb` | Phase 3 主体：冻结解析器能力边界（含 SUPPORTED_EXPRESSIONS.md） |
 | `3d48ebe` | Phase 3 补记：handoff 提交号与推送状态 |
-| Phase 4 提交 | 见 `git log --oneline -3`；本文件所在提交即 Phase 4 收工提交 |
+| `14afad0` | Phase 4 主体：实现 timeParser 并建立测试载体（第一行应用代码） |
 
 > 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由紧随其后的
 > 一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是 `8eca9a5`，Phase 3 是 `3d48ebe`。
@@ -156,7 +156,7 @@ lint / typecheck / build 永久保持 `Not established`（零依赖、无构建�
 
 ```
 To https://github.com/ayer-TANG/practice
-   3d48ebe..<Phase 4 提交>  main -> main
+   3d48ebe..14afad0  main -> main
 ```
 
 ## Working Tree
