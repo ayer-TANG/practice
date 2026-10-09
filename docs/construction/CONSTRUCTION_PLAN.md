@@ -292,7 +292,10 @@ Phase 5
 
 ### Acceptance Criteria
 能用一段真实风格的聊天记录走完主路径；手动补漏在 10 秒内完成；误检可删除。
-**验收状态：桩层面已通过；浏览器层面 `Not established`**（本机无法启动浏览器）。
+**验收状态：桩层面已通过；浏览器层面 `Not established`**（本机没有可交互的浏览器）。
+> **Phase 8 补注**：当时写的「无法启动浏览器」**过强**——本机装了 Edge，
+> 无头模式可用（`WORKFLOW.md` §5.1）。Phase 8 已用它取证静态渲染。
+> **交互层面仍未验证**，原文的结论不变，只是理由要写准。
 
 ### Rollback Point
 `backup/pre-phase6-ui-20261009-1913` → `42dc887`（写第一行 UI 代码之前）
@@ -330,8 +333,10 @@ Phase 6
 ### Acceptance Criteria
 生成的 Markdown 可读、包含截止时间与分组；复制与下载在 Chrome/Edge 均可用。
 **验收状态：Markdown 生成已由测试覆盖；剪贴板与下载 `Not established`**——
-本机无法启动浏览器。三级复制链路（API → `execCommand` → 手动提示）已实现，
+本机没有可交互的浏览器。三级复制链路（API → `execCommand` → 手动提示）已实现，
 但**哪一级会在真实浏览器里生效仍未验证**。
+> **Phase 8 补注**：无头 Edge 帮不上这里——剪贴板权限与下载对话框
+> 正是它够不着的那一半（`WORKFLOW.md` §5.1）。**这一项仍须用户实测。**
 
 ### Rollback Point
 `backup/pre-phase7-delivery-20261009-2010` → `787a6e7`（写第一行交付层代码之前）
