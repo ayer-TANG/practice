@@ -364,6 +364,13 @@ Phase 6
 - 新功能
 - 修复未在成功标准内的体验问题（记入 backlog 而非直接做）
 
+> **⚠️ 这条 Excluded 被越过一次（2026-10-09），有记录：**
+> 「粘贴区一键删除上次粘贴」是用户在本阶段进行中提出的**新功能**。
+> 之所以做，是因为 `AGENTS.md` 的 Instruction Priority 第 1 条是**用户最新明确指令**，
+> 高于阶段范围文档。**这不代表 Excluded 失效**——下一次新功能仍要先问用户。
+> 记录位置：`HANDOFF.md`、`PRODUCT_REQUIREMENTS.md` 首发范围第 7 条、
+> `DEV_PROGRESS.md` 本轮 Start Plan、`LOG.md` 本轮条目。
+
 ### Dependencies
 Phase 7
 
@@ -379,6 +386,8 @@ Phase 7
 - Assumption Register：**A-001 状态未变**（样本内校准不算验证），其余五条**据实未变**
 - 已修复 7 处（F8-1 / F8-2 / F8-6 / F8-7 / F8-9 / F8-10 / F8-15）；
   未修正漂移 **8 处 backlog**（F8-3 / F8-4 / F8-5 / F8-8 / F8-11 / F8-12 / F8-13 / F8-14），**均已记录**
+- **范围外追加 1 项**：「删除上次粘贴」（用户直令，见上方 Excluded 的注）。
+  它**不计入**本阶段的验收判据，只改变功能面
 
 ### Rollback Point
 Phase 2 的 backup 分支

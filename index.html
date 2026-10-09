@@ -117,7 +117,7 @@
   .empty strong { color: var(--text); }
   .actions { margin-top: 14px; }
   /* pointer-events 关掉，否则 :hover 仍会匹配 disabled 按钮，看着像可点 */
-  .actions button:disabled { opacity: .45; pointer-events: none; }
+  button:disabled { opacity: .45; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -134,8 +134,11 @@
     <textarea id="chat-input" placeholder="例如：&#10;收到&#10;明天下午三点前把上周的报表发我一下&#10;另外记得周五之前跟客户确认交付时间"></textarea>
     <div class="row">
       <button id="extract-btn" class="primary" type="button">抽取</button>
+      <button id="undo-paste-btn" type="button" disabled>删除上次粘贴</button>
       <span id="hint" class="hint" style="margin:0"></span>
     </div>
+    <p class="hint">「删除上次粘贴」一次删掉最近一次粘进来的那一段，连点可逐段退回；
+      它只认粘贴的内容，手动敲进去的字请自行删。</p>
   </section>
 
   <section class="panel">
@@ -1025,6 +1028,7 @@
 
   var chatInput = document.getElementById('chat-input');
   var extractBtn = document.getElementById('extract-btn');
+  var undoPasteBtn = document.getElementById('undo-paste-btn');
   var resultsEl = document.getElementById('results');
   var manualInput = document.getElementById('manual-input');
   var addBtn = document.getElementById('add-btn');
@@ -1045,6 +1049,90 @@
   var tasks = [];          // 展示用 = sorter(ruleTasks + manualTasks)
   var hasExtracted = false;
   var manualSeq = 0;
+
+  // 粘贴记账（Phase 8，用户直令新增）：每次粘贴存下**插入的那一段原文**。
+  // 只记粘贴，不记手敲——手敲没有「一次一段」的边界，按钮也就无从下手。
+  var pastedParts = [];    // [{ text: 粘进来的原文, start: 当时的插入起点 }]
+  var pendingPaste = null; // 粘贴事件已发生、input 事件还没到的暂存
+
+  // ---- 粘贴记账 ------------------------------------------------------------
+
+  function syncUndoBtn() {
+    var n = pastedParts.length;
+    undoPasteBtn.disabled = n === 0;
+    // disabled 的按钮多半不弹 title，所以「只认粘贴」这句写在面板的常驻提示里，
+    // 这里只补「还剩几段」这种会变的数字。
+    undoPasteBtn.title = n === 0
+      ? '还没有可删的粘贴记录'
+      : '删掉最近一次粘进来的那一段。当前记着 ' + n + ' 段，连点可逐段倒着删回去。';
+  }
+
+  // 粘贴事件触发时文本框**还没被改写**，此刻的选区就是即将被替换掉的范围；
+  // 插入的结果要等 input 事件才读得到。于是分两步。
+  function onPaste() {
+    pendingPaste = {
+      before: chatInput.value,
+      start: chatInput.selectionStart,
+      end: chatInput.selectionEnd
+    };
+  }
+
+  function onInput() {
+    if (!pendingPaste) return;
+    var p = pendingPaste;
+    pendingPaste = null;
+
+    // 被粘进来的长度 = 文本新增长度 + 被覆盖掉的那段选区长度
+    var replaced = p.end - p.start;
+    var insertedLen = chatInput.value.length - (p.before.length - replaced);
+    if (insertedLen <= 0) return;   // 空粘贴，不记账
+
+    pastedParts.push({ text: chatInput.value.substr(p.start, insertedLen), start: p.start });
+    // 文本框已经变了，上一条反馈（不论是抽取条数还是删除结果）都不再描述现状
+    hintEl.textContent = '';
+    syncUndoBtn();
+  }
+
+  // 找出「最近一次粘贴的那一段」此刻落在哪里：先信记账时的位置，
+  // 位置已失效（例如之后在前面打过字）就退回**最后一次出现**；
+  // 两者都对不上，说明那段被改得认不出来了——返回 -1。
+  function locateLastPaste() {
+    var rec = pastedParts[pastedParts.length - 1];
+    if (!rec) return -1;
+    if (chatInput.value.substr(rec.start, rec.text.length) === rec.text) return rec.start;
+    return chatInput.value.lastIndexOf(rec.text);
+  }
+
+  function undoLastPaste() {
+    if (pastedParts.length === 0) return;
+
+    var at = locateLastPaste();
+    if (at < 0) {
+      // 静默删错比不删更糟：用户会以为删掉的是这一段，其实动了别处。
+      pastedParts.pop();
+      syncUndoBtn();
+      hintEl.textContent = '上次粘进来的内容已被改过，认不出来了，请手动删掉那几行';
+      return;
+    }
+
+    var len = pastedParts[pastedParts.length - 1].text.length;
+    var v = chatInput.value;
+    chatInput.value = v.slice(0, at) + v.slice(at + len);
+
+    // 删除点之后还留着的记录，其位置提示要跟着左移，否则提示会漂
+    pastedParts.pop();
+    for (var i = 0; i < pastedParts.length; i++) {
+      if (pastedParts[i].start > at) pastedParts[i].start -= len;
+    }
+
+    syncUndoBtn();
+    hintEl.textContent = pastedParts.length === 0
+      ? '已删掉上次粘贴的内容'
+      : '已删掉上次粘贴的内容，还剩 ' + pastedParts.length + ' 段';
+
+    chatInput.setSelectionRange(at, at);
+    chatInput.focus();
+  }
 
   // ---- 展示 ----------------------------------------------------------------
 
@@ -1280,6 +1368,9 @@
 
   extractBtn.addEventListener('click', runExtract);
   addBtn.addEventListener('click', addManual);
+  undoPasteBtn.addEventListener('click', undoLastPaste);
+  chatInput.addEventListener('paste', onPaste);
+  chatInput.addEventListener('input', onInput);
   if (hasDelivery) {
     copyBtn.addEventListener('click', doCopy);
     downloadBtn.addEventListener('click', doDownload);
@@ -1299,6 +1390,7 @@
     }
   });
 
+  syncUndoBtn();
   render();
 })();
 </script>
