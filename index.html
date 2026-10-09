@@ -359,12 +359,38 @@
     };
   }
 
+  // 时段词 + 冒号时刻（「下午16:00」「上午10:30」）。
+  //
+  // Phase 8 用真实语料补的规格缺口。§1.B 分别列了「下午X点」与「X:XX」，
+  // 但没写明两者的交集，实现因此只认带「点」的前者——
+  // 「下午16:00」整段落空，而 §3 明确承诺「日期段 + 时间点段」的组合成立。
+  // 时段词的 12/24 修正对已经 ≥13 的时刻无害（16 不会再 +12）。
+  function clockPattern(prefix, shiftPm) {
+    return {
+      re: new RegExp(prefix + '\\s*(\\d{1,2})\\s*[:：]\\s*(\\d{1,2})', 'g'),
+      kind: 'time',
+      make: function (m) {
+        var h = parseInt(m[1], 10), mi = parseInt(m[2], 10);
+        if (h > 23 || mi > 59) return null;
+        if (shiftPm && h < 12) h = h + 12;
+        return { h: h, m: mi, infer12: false };
+      }
+    };
+  }
+
   var TIME_PATTERNS = [
     // 带时段词 —— 12/24 小时制已由时段词确定
     timePattern(new RegExp('(?:上午|早上|早晨)\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
     timePattern(new RegExp('中午\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
     timePattern(new RegExp('(?:下午|晚上)\\s*(' + NUM + ')' + TAIL, 'g'), false, true),
     timePattern(new RegExp('凌晨\\s*(' + NUM + ')' + TAIL, 'g'), false, false),
+
+    // 带时段词的冒号时刻 —— 必须排在下面那条无前缀的 `X:XX` 之前，
+    // 否则 timePointAt 在第 i 位会先撞上无前缀模式。见上方注释
+    clockPattern('(?:上午|早上|早晨)', false),
+    clockPattern('中午', false),
+    clockPattern('(?:下午|晚上)', true),
+    clockPattern('凌晨', false),
 
     // X:XX（半角或全角冒号）
     { re: /(\d{1,2})\s*[:：]\s*(\d{1,2})/g, kind: 'time',
@@ -516,11 +542,32 @@
   }
 
   var TIME_TAIL_SKIP = /[\s，,、]/;
+  var BRACKET_PAIRS = { '（': '）', '(': ')' };
+  // 括号插入语的长度上限。超过就认为不是同位语注释，而是别的内容。
+  var BRACKET_MAX = 20;
+
+  // 跳过「日期段」与「时间点段」之间允许出现的填充物：
+  // 空白、`，,、`，以及**一个完整闭合的括号插入语**。
+  //
+  // 括号这一条是 Phase 8 用真实语料补的。规格初稿只允许空白与 `，,、`，
+  // 而「10月11日（本周日）下午四点」这种写法在真实通知里极常见——
+  // 括号里写星期几是**同位语注释**，不是在换话题，不该切断组合。
+  // 只跳成对闭合且不长的括号；未闭合或过长一律视为话题已断，保持原行为。
+  function skipBetween(text, pos) {
+    var i = pos;
+    for (;;) {
+      while (i < text.length && TIME_TAIL_SKIP.test(text[i])) i++;
+      var close = BRACKET_PAIRS[text[i]];
+      if (close === undefined) return i;
+      var end = text.indexOf(close, i + 1);
+      if (end === -1 || end - i > BRACKET_MAX) return i;
+      i = end + 1;
+    }
+  }
 
   // 在 pos 处（允许跳过少量分隔符）找一个时间点，用于「日期 + 时间点」组合
   function timePointAt(text, pos) {
-    var i = pos;
-    while (i < text.length && TIME_TAIL_SKIP.test(text[i])) i++;
+    var i = skipBetween(text, pos);
     if (i >= text.length) return null;
     for (var k = 0; k < TIME_PATTERNS.length; k++) {
       var p = TIME_PATTERNS[k];
