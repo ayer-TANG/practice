@@ -130,12 +130,14 @@ Phase 1 曾跳过此步骤（当时只产出文档，`b764476` 已推送可用�
 
 | 提交 | 说明 |
 |---|---|
+| `b764476` | 仓库初始化 |
 | `ce56c9b` | Phase 1 主体：建立产品与施工文档体系 |
 | `9d693c1` | Phase 1 补记：handoff 提交号 |
-| Phase 2 提交 | 见 `git log --oneline -3`；本文件所在提交即 Phase 2 收工提交 |
+| `6a977fb` | Phase 2 主体：建立远端回滚点并整理仓库环境（9 files, +375 −88） |
+| 本文件所在提交 | Phase 2 补记：填入 `6a977fb` 与推送状态 |
 
-> 说明：HANDOFF 无法记录**包含它自己**的提交号。因此 Phase 2 的提交号由
-> 紧随其后的一个补记提交填入，形如 Phase 1 的 `9d693c1`。
+> 说明：HANDOFF 无法记录**包含它自己**的提交号。因此每个阶段的提交号由
+> 紧随其后的一个补记提交填入 —— Phase 1 是 `9d693c1`，Phase 2 是本文件所在提交。
 
 ## Push Status
 
@@ -143,8 +145,10 @@ Phase 1 曾跳过此步骤（当时只产出文档，`b764476` 已推送可用�
 
 ```
 To https://github.com/ayer-TANG/practice
-   9d693c1..<Phase 2 提交>  main -> main
+   9d693c1..6a977fb  main -> main
 ```
+
+`origin/main` 现指向 `6a977fb`（或本文件所在的后续补记提交）。
 
 ## Working Tree
 
